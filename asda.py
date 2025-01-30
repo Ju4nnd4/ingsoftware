@@ -75,7 +75,7 @@ class MainApp:
     def __init__(self):
         self.login_view = LoginView(self)
         self.menu_view = MenuView(self)
-        self.loop = urwid.MainLoop(  # Movemos la creación del loop aquí
+        self.loop = urwid.MainLoop(
             self.login_view,
             palette,
             unhandled_input=lambda k: exit_program(None) if k in ('q', 'Q') else None
@@ -83,7 +83,7 @@ class MainApp:
         self.mostrar_login()
 
     def mostrar_login(self):
-        self.loop.widget = self.login_view  # Ahora self.loop ya existe
+        self.loop.widget = self.login_view
 
     def mostrar_menu(self):
         self.loop.widget = self.menu_view
@@ -93,4 +93,4 @@ def exit_program(button):
 
 if __name__ == '__main__':
     app = MainApp()
-    app.loop.run()  # Solo ejecutamos el loop ya creado
+    app.loop.run()
