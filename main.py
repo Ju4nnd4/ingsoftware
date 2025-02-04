@@ -1,9 +1,15 @@
 import urwid
 
+import urwid
+from admin import AdminView
+from vendedor import VendedorView
+from domiciliario import DomiciliarioView
+
 # Datos de cuentas válidas (simuladas)
 cuentas_validas = [
-    {"usuario": "admin", "contraseña": "123"},
-    {"usuario": "user", "contraseña": "456"}
+    {"usuario": "admin", "contraseña": "123", "rol": "admin"},
+    {"usuario": "vendedor", "contraseña": "456", "rol": "vendedor"},
+    {"usuario": "domiciliario", "contraseña": "456", "rol": "domiciliario"}
 ]
 
 # Paleta de colores
@@ -40,41 +46,18 @@ class LoginView(urwid.WidgetWrap):
         contraseña = self.contraseña.edit_text
         
         # Verificar credenciales
-        if any(c["usuario"] == usuario and c["contraseña"] == contraseña for c in cuentas_validas):
-            self.main.mostrar_menu()
-        else:
-            self.error.set_text(('error', "Credenciales incorrectas. Intente nuevamente"))
-            self.usuario.set_edit_text("")
-            self.contraseña.set_edit_text("")
-
-class MenuView(urwid.WidgetWrap):
-    def __init__(self, main):
-        self.main = main
-        pile = urwid.Pile([
-            urwid.Divider(),
-            urwid.Text("Menú Principal", align='center'),
-            urwid.Divider(),
-            urwid.Button("Opción 1", on_press=lambda x: self.mensaje("Opción 1")),
-            urwid.Button("Opción 2", on_press=lambda x: self.mensaje("Opción 2")),
-            urwid.Button("Opción 3", on_press=lambda x: self.mensaje("Opción 3")),
-            urwid.Divider(),
-            urwid.Button("Salir", on_press=exit_program)
-        ])
-        super().__init__(urwid.Filler(pile, valign='top'))
-
-    def mensaje(self, texto):
-        self.main.loop.widget = urwid.Overlay(
-            urwid.LineBox(urwid.Text(f"\n{texto} seleccionada\n", align='center')),
-            self.main.loop.widget,
-            align='center',
-            width=30,
-            height=5
-        )
+        for cuenta in cuentas_validas:
+            if cuenta["usuario"] == usuario and cuenta["contraseña"] == contraseña:
+                self.main.mostrar_menu(cuenta["rol"])
+                return
+        
+        self.error.set_text(('error', "Credenciales incorrectas. Intente nuevamente"))
+        self.usuario.set_edit_text("")
+        self.contraseña.set_edit_text("")
 
 class MainApp:
     def __init__(self):
         self.login_view = LoginView(self)
-        self.menu_view = MenuView(self)
         self.loop = urwid.MainLoop(
             self.login_view,
             palette,
@@ -85,8 +68,13 @@ class MainApp:
     def mostrar_login(self):
         self.loop.widget = self.login_view
 
-    def mostrar_menu(self):
-        self.loop.widget = self.menu_view
+    def mostrar_menu(self, rol):
+        if rol == "admin":
+            self.loop.widget = AdminView(self)
+        elif rol == "vendedor":
+            self.loop.widget = VendedorView(self)
+        elif rol == "domiciliario":
+            self.loop.widget = DomiciliarioView(self)
 
 def exit_program(button):
     raise urwid.ExitMainLoop()
@@ -94,3 +82,4 @@ def exit_program(button):
 if __name__ == '__main__':
     app = MainApp()
     app.loop.run()
+
