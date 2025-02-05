@@ -1,5 +1,6 @@
 import urwid
 import re
+import uuid  # Para generar IDs únicos
 
 class AdminView(urwid.WidgetWrap):
     def __init__(self, main):
@@ -15,9 +16,11 @@ class AdminView(urwid.WidgetWrap):
             with open("inventario.txt", "r", encoding="utf-8") as file:
                 for linea in file:
                     linea = re.sub(r"[^\x20-\x7E]", "", linea)
-                    verdura, precio, cantidad = linea.strip().split(": ")
-                    self.inventario[verdura] = {
-                        "precio": float(precio),
+                    id_producto, nombre, precio_compra, precio_venta, cantidad = linea.strip().split(": ")
+                    self.inventario[id_producto] = {
+                        "nombre": nombre,
+                        "precio_compra": float(precio_compra),
+                        "precio_venta": float(precio_venta),
                         "cantidad": int(cantidad)
                     }
         except FileNotFoundError:
@@ -25,8 +28,8 @@ class AdminView(urwid.WidgetWrap):
 
     def guardar_inventario(self):
         with open("inventario.txt", "w", encoding="utf-8") as file:
-            for verdura, datos in self.inventario.items():
-                file.write(f"{verdura}: {datos['precio']}: {datos['cantidad']}\n")
+            for id_producto, datos in self.inventario.items():
+                file.write(f"{id_producto}: {datos['nombre']}: {datos['precio_compra']}: {datos['precio_venta']}: {datos['cantidad']}\n")
 
     def mostrar_menu(self, *args):
         pile = urwid.Pile([
@@ -34,9 +37,9 @@ class AdminView(urwid.WidgetWrap):
             urwid.Text("Menú de Administrador", align='center'),
             urwid.Divider(),
             urwid.Button("Ver inventario", on_press=self.ver_inventario),
-            urwid.Button("Agregar verdura", on_press=self.agregar_verdura),
-            urwid.Button("Borrar verdura", on_press=self.borrar_verdura),
-            urwid.Button("Cambiar precio", on_press=self.cambiar_precio),  # Nueva opción
+            urwid.Button("Agregar producto", on_press=self.agregar_producto),
+            urwid.Button("Borrar producto", on_press=self.borrar_producto),
+            urwid.Button("Cambiar precio de venta", on_press=self.cambiar_precio_venta),  # Cambio de nombre
             urwid.Divider(),
             urwid.Button("Volver al inicio", on_press=self.volver_al_inicio),
         ])
@@ -49,8 +52,11 @@ class AdminView(urwid.WidgetWrap):
             contenido = "El inventario está vacío."
         else:
             contenido = "\n".join([
-                f"{verdura}: Precio: {datos['precio']}, Cantidad: {datos['cantidad']}"
-                for verdura, datos in self.inventario.items()
+                f"ID: {id_producto} | Nombre: {datos['nombre']} | "
+                f"Precio de compra: {datos['precio_compra']} | "
+                f"Precio de venta: {datos['precio_venta']} | "
+                f"Cantidad: {datos['cantidad']}"
+                for id_producto, datos in self.inventario.items()
             ])
         
         body = urwid.Pile([
@@ -63,37 +69,40 @@ class AdminView(urwid.WidgetWrap):
             urwid.LineBox(urwid.Filler(body)),
             self.main.loop.widget,
             align='center',
-            width=50,
-            height=min(15, len(self.inventario) + 7),
+            width=80,  # Aumentar el ancho para mostrar más información
+            height=min(20, len(self.inventario) + 7),
             valign='middle'
         )
 
-    def agregar_verdura(self, button):
-        self.nombre_edit = urwid.Edit("Nombre de la verdura: ")
-        self.precio_edit = urwid.Edit("Precio: ")
+    def agregar_producto(self, button):
+        self.nombre_edit = urwid.Edit("Nombre del producto: ")
+        self.precio_compra_edit = urwid.Edit("Precio de compra: ")
+        self.precio_venta_edit = urwid.Edit("Precio de venta: ")
         self.cantidad_edit = urwid.Edit("Cantidad: ")
     
         self.main.loop.widget = urwid.Overlay(
             urwid.LineBox(urwid.Pile([
-                urwid.Text("Agregar verdura", align='center'),
+                urwid.Text("Agregar producto", align='center'),
                 urwid.Divider(),
                 self.nombre_edit,
-                self.precio_edit,
+                self.precio_compra_edit,
+                self.precio_venta_edit,
                 self.cantidad_edit,
                 urwid.Divider(),
-                urwid.Button("Guardar", on_press=self.guardar_verdura),
+                urwid.Button("Guardar", on_press=self.guardar_producto),
                 urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
             ])),
             self.main.loop.widget,
             align='center',
             width=40,
-            height=12,
+            height=14,  # Aumentar la altura para los nuevos campos
             valign='middle'
         )
 
-    def guardar_verdura(self, button):
+    def guardar_producto(self, button):
         nombre = self.nombre_edit.edit_text.strip()
-        precio = self.precio_edit.edit_text.strip()
+        precio_compra = self.precio_compra_edit.edit_text.strip()
+        precio_venta = self.precio_venta_edit.edit_text.strip()
         cantidad = self.cantidad_edit.edit_text.strip()
 
         if not nombre:
@@ -101,29 +110,41 @@ class AdminView(urwid.WidgetWrap):
             return
         
         try:
-            precio = float(precio)
+            precio_compra = float(precio_compra)
+            precio_venta = float(precio_venta)
             cantidad = int(cantidad)
-            self.inventario[nombre] = {"precio": precio, "cantidad": cantidad}
+            id_producto = str(uuid.uuid4())  # Generar un ID único
+            self.inventario[id_producto] = {
+                "nombre": nombre,
+                "precio_compra": precio_compra,
+                "precio_venta": precio_venta,
+                "cantidad": cantidad
+            }
             self.guardar_inventario()
-            self.mostrar_mensaje(f"'{nombre}' agregada al inventario.")
+            self.mostrar_mensaje(f"'{nombre}' agregado al inventario.")
         except ValueError:
-            self.mostrar_mensaje("Error: El precio debe ser un número y la cantidad un entero.")
+            self.mostrar_mensaje("Error: Los precios deben ser números y la cantidad un entero.")
 
-    def borrar_verdura(self, button):
+    def borrar_producto(self, button):
         if not self.inventario:
             self.mostrar_mensaje("Inventario vacío.")
             return
     
         items = []
-        for verdura, datos in self.inventario.items():
-            button = urwid.Button(f"{verdura} - Precio: {datos['precio']} - Cantidad: {datos['cantidad']}")
-            urwid.connect_signal(button, 'click', self.confirmar_borrar, verdura)
+        for id_producto, datos in self.inventario.items():
+            button = urwid.Button(
+                f"ID: {id_producto} | Nombre: {datos['nombre']} | "
+                f"Precio de compra: {datos['precio_compra']} | "
+                f"Precio de venta: {datos['precio_venta']} | "
+                f"Cantidad: {datos['cantidad']}"
+            )
+            urwid.connect_signal(button, 'click', self.confirmar_borrar, id_producto)
             items.append(button)
     
         lista = urwid.ListBox(urwid.SimpleFocusListWalker(items))
     
         body = urwid.Pile([
-            urwid.Text("Seleccione la verdura a borrar", align='center'),
+            urwid.Text("Seleccione el producto a borrar", align='center'),
             urwid.Divider(),
             urwid.BoxAdapter(lista, height=10),
             urwid.Divider(),
@@ -134,34 +155,38 @@ class AdminView(urwid.WidgetWrap):
             urwid.LineBox(urwid.Filler(body, valign='top')),
             self.main.loop.widget,
             align='center',
-            width=50,
+            width=80,  # Aumentar el ancho para mostrar más información
             height=15,
             valign='middle'
         )
 
-    def confirmar_borrar(self, button, verdura):
-        if verdura in self.inventario:
-            del self.inventario[verdura]
+    def confirmar_borrar(self, button, id_producto):
+        if id_producto in self.inventario:
+            nombre = self.inventario[id_producto]["nombre"]
+            del self.inventario[id_producto]
             self.guardar_inventario()
-            self.mostrar_mensaje(f"'{verdura}' eliminada del inventario.")
+            self.mostrar_mensaje(f"'{nombre}' eliminado del inventario.")
         else:
-            self.mostrar_mensaje("Error: La verdura no existe en el inventario.")
+            self.mostrar_mensaje("Error: El producto no existe en el inventario.")
 
-    def cambiar_precio(self, button):
+    def cambiar_precio_venta(self, button):
         if not self.inventario:
             self.mostrar_mensaje("Inventario vacío.")
             return
     
         items = []
-        for verdura, datos in self.inventario.items():
-            button = urwid.Button(f"{verdura} - Precio actual: {datos['precio']}")
-            urwid.connect_signal(button, 'click', self.seleccionar_verdura_para_cambiar_precio, verdura)
+        for id_producto, datos in self.inventario.items():
+            button = urwid.Button(
+                f"ID: {id_producto} | Nombre: {datos['nombre']} | "
+                f"Precio de venta actual: {datos['precio_venta']}"
+            )
+            urwid.connect_signal(button, 'click', self.seleccionar_producto_para_cambiar_precio_venta, id_producto)
             items.append(button)
     
         lista = urwid.ListBox(urwid.SimpleFocusListWalker(items))
     
         body = urwid.Pile([
-            urwid.Text("Seleccione la verdura para cambiar el precio", align='center'),
+            urwid.Text("Seleccione el producto para cambiar el precio de venta", align='center'),
             urwid.Divider(),
             urwid.BoxAdapter(lista, height=10),
             urwid.Divider(),
@@ -172,22 +197,22 @@ class AdminView(urwid.WidgetWrap):
             urwid.LineBox(urwid.Filler(body, valign='top')),
             self.main.loop.widget,
             align='center',
-            width=50,
+            width=80,  # Aumentar el ancho para mostrar más información
             height=15,
             valign='middle'
         )
 
-    def seleccionar_verdura_para_cambiar_precio(self, button, verdura):
-        self.verdura_seleccionada = verdura
-        self.nuevo_precio_edit = urwid.Edit(f"Nuevo precio para {verdura}: ")
+    def seleccionar_producto_para_cambiar_precio_venta(self, button, id_producto):
+        self.id_producto_seleccionado = id_producto
+        self.nuevo_precio_venta_edit = urwid.Edit(f"Nuevo precio de venta para {self.inventario[id_producto]['nombre']}: ")
     
         self.main.loop.widget = urwid.Overlay(
             urwid.LineBox(urwid.Pile([
-                urwid.Text(f"Cambiar precio de {verdura}", align='center'),
+                urwid.Text(f"Cambiar precio de venta de {self.inventario[id_producto]['nombre']}", align='center'),
                 urwid.Divider(),
-                self.nuevo_precio_edit,
+                self.nuevo_precio_venta_edit,
                 urwid.Divider(),
-                urwid.Button("Guardar", on_press=self.guardar_nuevo_precio),
+                urwid.Button("Guardar", on_press=self.guardar_nuevo_precio_venta),
                 urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
             ])),
             self.main.loop.widget,
@@ -197,21 +222,24 @@ class AdminView(urwid.WidgetWrap):
             valign='middle'
         )
 
-    def guardar_nuevo_precio(self, button):
-        nuevo_precio = self.nuevo_precio_edit.edit_text.strip()
+    def guardar_nuevo_precio_venta(self, button):
+        nuevo_precio_venta = self.nuevo_precio_venta_edit.edit_text.strip()
     
-        if not nuevo_precio:
+        if not nuevo_precio_venta:
             self.mostrar_mensaje("Error: Precio vacío.")
             return
     
         try:
-            nuevo_precio = float(nuevo_precio)
-            if self.verdura_seleccionada in self.inventario:
-                self.inventario[self.verdura_seleccionada]["precio"] = nuevo_precio
+            nuevo_precio_venta = float(nuevo_precio_venta)
+            if self.id_producto_seleccionado in self.inventario:
+                self.inventario[self.id_producto_seleccionado]["precio_venta"] = nuevo_precio_venta
                 self.guardar_inventario()
-                self.mostrar_mensaje(f"Precio de '{self.verdura_seleccionada}' actualizado a {nuevo_precio}.")
+                self.mostrar_mensaje(
+                    f"Precio de venta de '{self.inventario[self.id_producto_seleccionado]['nombre']}' "
+                    f"actualizado a {nuevo_precio_venta}."
+                )
             else:
-                self.mostrar_mensaje("Error: La verdura no existe en el inventario.")
+                self.mostrar_mensaje("Error: El producto no existe en el inventario.")
         except ValueError:
             self.mostrar_mensaje("Error: El precio debe ser un número.")
 
