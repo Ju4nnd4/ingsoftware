@@ -58,28 +58,36 @@ class AdminView(urwid.WidgetWrap):
 
     def ver_inventario(self, button):
         if not self.inventario:
-            contenido = "El inventario está vacío."
+            contenido = [urwid.Text("El inventario está vacío.", align='center')]
         else:
-            contenido = "\n".join([
-                f"ID: {id_producto} | Nombre: {datos['nombre']} | "
-                f"Precio de compra: {datos['precio_compra']} | "
-                f"Precio de venta: {datos['precio_venta']} | "
-                f"Cantidad: {datos['cantidad']}"
+            contenido = [
+                urwid.Text(
+                    f"ID: {id_producto} | Nombre: {datos['nombre']} | "
+                    f"Precio de compra: {datos['precio_compra']} | "
+                    f"Precio de venta: {datos['precio_venta']} | "
+                    f"Cantidad: {datos['cantidad']}",
+                    align='left'
+                )
                 for id_producto, datos in self.inventario.items()
-            ])
+            ]
+        
+        # Crear un ListBox para permitir el desplazamiento vertical
+        lista = urwid.ListBox(urwid.SimpleFocusListWalker(contenido))
         
         body = urwid.Pile([
-            urwid.Text(f"Inventario:\n{contenido}", align='center'),
+            urwid.Text("Inventario:", align='center'),
+            urwid.Divider(),
+            urwid.BoxAdapter(lista, height=min(20, len(self.inventario) + 5)),  # Ajustar altura
             urwid.Divider(),
             urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
         ])
-
+    
         self.main.loop.widget = urwid.Overlay(
-            urwid.LineBox(urwid.Filler(body)),
+            urwid.LineBox(urwid.Filler(body, valign='top')),
             self.main.loop.widget,
             align='center',
             width=80,  # Aumentar el ancho para mostrar más información
-            height=min(20, len(self.inventario) + 7),
+            height=min(25, len(self.inventario) + 10),  # Ajustar altura dinámicamente
             valign='middle'
         )
 
