@@ -1,4 +1,4 @@
-Zanahoria: 2.5: 10
+Zanahoria: 3.5: 10
 Tomate: 3.2: 8
 Cebolla: 1.5: 20
 Papa: 2.0: 12

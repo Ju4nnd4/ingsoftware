@@ -36,6 +36,7 @@ class AdminView(urwid.WidgetWrap):
             urwid.Button("Ver inventario", on_press=self.ver_inventario),
             urwid.Button("Agregar verdura", on_press=self.agregar_verdura),
             urwid.Button("Borrar verdura", on_press=self.borrar_verdura),
+            urwid.Button("Cambiar precio", on_press=self.cambiar_precio),  # Nueva opción
             urwid.Divider(),
             urwid.Button("Volver al inicio", on_press=self.volver_al_inicio),
         ])
@@ -145,6 +146,74 @@ class AdminView(urwid.WidgetWrap):
             self.mostrar_mensaje(f"'{verdura}' eliminada del inventario.")
         else:
             self.mostrar_mensaje("Error: La verdura no existe en el inventario.")
+
+    def cambiar_precio(self, button):
+        if not self.inventario:
+            self.mostrar_mensaje("Inventario vacío.")
+            return
+    
+        items = []
+        for verdura, datos in self.inventario.items():
+            button = urwid.Button(f"{verdura} - Precio actual: {datos['precio']}")
+            urwid.connect_signal(button, 'click', self.seleccionar_verdura_para_cambiar_precio, verdura)
+            items.append(button)
+    
+        lista = urwid.ListBox(urwid.SimpleFocusListWalker(items))
+    
+        body = urwid.Pile([
+            urwid.Text("Seleccione la verdura para cambiar el precio", align='center'),
+            urwid.Divider(),
+            urwid.BoxAdapter(lista, height=10),
+            urwid.Divider(),
+            urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
+        ])
+    
+        self.main.loop.widget = urwid.Overlay(
+            urwid.LineBox(urwid.Filler(body, valign='top')),
+            self.main.loop.widget,
+            align='center',
+            width=50,
+            height=15,
+            valign='middle'
+        )
+
+    def seleccionar_verdura_para_cambiar_precio(self, button, verdura):
+        self.verdura_seleccionada = verdura
+        self.nuevo_precio_edit = urwid.Edit(f"Nuevo precio para {verdura}: ")
+    
+        self.main.loop.widget = urwid.Overlay(
+            urwid.LineBox(urwid.Pile([
+                urwid.Text(f"Cambiar precio de {verdura}", align='center'),
+                urwid.Divider(),
+                self.nuevo_precio_edit,
+                urwid.Divider(),
+                urwid.Button("Guardar", on_press=self.guardar_nuevo_precio),
+                urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
+            ])),
+            self.main.loop.widget,
+            align='center',
+            width=40,
+            height=10,
+            valign='middle'
+        )
+
+    def guardar_nuevo_precio(self, button):
+        nuevo_precio = self.nuevo_precio_edit.edit_text.strip()
+    
+        if not nuevo_precio:
+            self.mostrar_mensaje("Error: Precio vacío.")
+            return
+    
+        try:
+            nuevo_precio = float(nuevo_precio)
+            if self.verdura_seleccionada in self.inventario:
+                self.inventario[self.verdura_seleccionada]["precio"] = nuevo_precio
+                self.guardar_inventario()
+                self.mostrar_mensaje(f"Precio de '{self.verdura_seleccionada}' actualizado a {nuevo_precio}.")
+            else:
+                self.mostrar_mensaje("Error: La verdura no existe en el inventario.")
+        except ValueError:
+            self.mostrar_mensaje("Error: El precio debe ser un número.")
 
     def mostrar_mensaje(self, mensaje):
         mensaje_box = urwid.Overlay(
