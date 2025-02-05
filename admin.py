@@ -21,7 +21,7 @@ class AdminView(urwid.WidgetWrap):
             self.inventario = {}
 
     def guardar_inventario(self):
-        with open("inventario.txt", "a") as file:
+        with open("inventario.txt", "w", encoding="utf-8") as file:
             for verdura, datos in self.inventario.items():
                 file.write(f"{verdura}: {datos['precio']}: {datos['cantidad']}\n")
 
@@ -108,10 +108,17 @@ class AdminView(urwid.WidgetWrap):
             self.mostrar_mensaje("Inventario vacío.")
             return
     
-        items = [urwid.Text(f"{verdura} - Precio: {datos['precio']} - Cantidad: {datos['cantidad']}") 
-                 for verdura, datos in self.inventario.items()]
+        # Crear una lista de botones, uno para cada verdura
+        items = []
+        for verdura, datos in self.inventario.items():
+            # Crear un botón para cada verdura
+            button = urwid.Button(f"{verdura} - Precio: {datos['precio']} - Cantidad: {datos['cantidad']}")
+            # Asignar el manejador de eventos para borrar la verdura
+            urwid.connect_signal(button, 'click', self.confirmar_borrar, verdura)
+            items.append(button)
+    
+        # Crear un ListBox con los botones
         lista = urwid.ListBox(urwid.SimpleFocusListWalker(items))
-        self.verduras_lista = list(self.inventario.keys())
     
         # Usar BoxAdapter para envolver el ListBox
         body = urwid.Pile([
@@ -119,10 +126,10 @@ class AdminView(urwid.WidgetWrap):
             urwid.Divider(),
             urwid.BoxAdapter(lista, height=10),  # Ajusta la altura según sea necesario
             urwid.Divider(),
-            urwid.Button("Borrar", on_press=self.confirmar_borrar, user_data=lista),
             urwid.Button("Cancelar", on_press=self.mostrar_menu)
         ])
     
+        # Mostrar el overlay con el ListBox
         self.main.loop.widget = urwid.Overlay(
             urwid.LineBox(urwid.Filler(body, valign='top')),
             self.main.loop.widget,
@@ -131,15 +138,14 @@ class AdminView(urwid.WidgetWrap):
             height=15,
             valign='middle'
         )
-    def confirmar_borrar(self, button, lista):
-        focus_widget, index = lista.get_focus()
-        if index is not None:
-            nombre = self.verduras_lista[index]
-            del self.inventario[nombre]
+    def confirmar_borrar(self, button, verdura):
+        # Eliminar la verdura del inventario
+        if verdura in self.inventario:
+            del self.inventario[verdura]
             self.guardar_inventario()
-            self.mostrar_mensaje(f"'{nombre}' eliminada del inventario.")
+            self.mostrar_mensaje(f"'{verdura}' eliminada del inventario.")
         else:
-            self.mostrar_mensaje("No se seleccionó ninguna verdura.")
+            self.mostrar_mensaje("Error: La verdura no existe en el inventario.")
 
     def mostrar_mensaje(self, mensaje):
         mensaje_box = urwid.Overlay(
