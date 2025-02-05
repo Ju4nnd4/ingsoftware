@@ -1,9 +1,12 @@
 import urwid
 import re
+
 class AdminView(urwid.WidgetWrap):
     def __init__(self, main):
         self.main = main
         self.cargar_inventario()
+        # Inicializar el widget envuelto con un widget temporal
+        super().__init__(urwid.Text("Cargando..."))
         self.mostrar_menu()
 
     def cargar_inventario(self):
@@ -34,9 +37,11 @@ class AdminView(urwid.WidgetWrap):
             urwid.Button("Agregar verdura", on_press=self.agregar_verdura),
             urwid.Button("Borrar verdura", on_press=self.borrar_verdura),
             urwid.Divider(),
-            urwid.Button("Salir", on_press=self.main.mostrar_login)
+            urwid.Button("Volver al inicio", on_press=self.volver_al_inicio),
         ])
-        self._w = urwid.Filler(pile, valign='top')
+        # Actualizar el widget envuelto y el widget principal
+        self._wrapped_widget = urwid.Filler(pile, valign='top')
+        self.main.loop.widget = self._wrapped_widget  # Actualizar el widget principal
 
     def ver_inventario(self, button):
         if not self.inventario:
@@ -50,7 +55,7 @@ class AdminView(urwid.WidgetWrap):
         body = urwid.Pile([
             urwid.Text(f"Inventario:\n{contenido}", align='center'),
             urwid.Divider(),
-            urwid.Button("Volver", on_press=self.mostrar_menu)
+            urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
         ])
 
         self.main.loop.widget = urwid.Overlay(
@@ -66,7 +71,7 @@ class AdminView(urwid.WidgetWrap):
         self.nombre_edit = urwid.Edit("Nombre de la verdura: ")
         self.precio_edit = urwid.Edit("Precio: ")
         self.cantidad_edit = urwid.Edit("Cantidad: ")
-
+    
         self.main.loop.widget = urwid.Overlay(
             urwid.LineBox(urwid.Pile([
                 urwid.Text("Agregar verdura", align='center'),
@@ -76,7 +81,7 @@ class AdminView(urwid.WidgetWrap):
                 self.cantidad_edit,
                 urwid.Divider(),
                 urwid.Button("Guardar", on_press=self.guardar_verdura),
-                urwid.Button("Cancelar", on_press=self.mostrar_menu)
+                urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
             ])),
             self.main.loop.widget,
             align='center',
@@ -108,28 +113,22 @@ class AdminView(urwid.WidgetWrap):
             self.mostrar_mensaje("Inventario vacío.")
             return
     
-        # Crear una lista de botones, uno para cada verdura
         items = []
         for verdura, datos in self.inventario.items():
-            # Crear un botón para cada verdura
             button = urwid.Button(f"{verdura} - Precio: {datos['precio']} - Cantidad: {datos['cantidad']}")
-            # Asignar el manejador de eventos para borrar la verdura
             urwid.connect_signal(button, 'click', self.confirmar_borrar, verdura)
             items.append(button)
     
-        # Crear un ListBox con los botones
         lista = urwid.ListBox(urwid.SimpleFocusListWalker(items))
     
-        # Usar BoxAdapter para envolver el ListBox
         body = urwid.Pile([
             urwid.Text("Seleccione la verdura a borrar", align='center'),
             urwid.Divider(),
-            urwid.BoxAdapter(lista, height=10),  # Ajusta la altura según sea necesario
+            urwid.BoxAdapter(lista, height=10),
             urwid.Divider(),
-            urwid.Button("Cancelar", on_press=self.mostrar_menu)
+            urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
         ])
     
-        # Mostrar el overlay con el ListBox
         self.main.loop.widget = urwid.Overlay(
             urwid.LineBox(urwid.Filler(body, valign='top')),
             self.main.loop.widget,
@@ -138,8 +137,8 @@ class AdminView(urwid.WidgetWrap):
             height=15,
             valign='middle'
         )
+
     def confirmar_borrar(self, button, verdura):
-        # Eliminar la verdura del inventario
         if verdura in self.inventario:
             del self.inventario[verdura]
             self.guardar_inventario()
@@ -149,16 +148,21 @@ class AdminView(urwid.WidgetWrap):
 
     def mostrar_mensaje(self, mensaje):
         mensaje_box = urwid.Overlay(
-            urwid.LineBox(urwid.Filler(urwid.Text(f"\n{mensaje}\n", align='center'))),
+            urwid.LineBox(urwid.Filler(urwid.Pile([
+                urwid.Text(f"\n{mensaje}\n", align='center'),
+                urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
+            ]), valign='middle')),
             self.main.loop.widget,
             align='center',
             width=30,
             height=5,
-            valign='middle'  
+            valign='middle'
         )
         
         self.main.loop.widget = mensaje_box
-        self.main.loop.set_alarm_in(1, self.mostrar_menu)
 
-    def regresar_menu(self, loop, data):
-        self.mostrar_menu()
+    def volver(self, button):
+        self.mostrar_menu()  # Regenera el menú principal
+
+    def volver_al_inicio(self, button):
+        self.main.mostrar_login()
