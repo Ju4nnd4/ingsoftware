@@ -1,5 +1,5 @@
 import urwid
-
+import re
 class AdminView(urwid.WidgetWrap):
     def __init__(self, main):
         self.main = main
@@ -9,8 +9,9 @@ class AdminView(urwid.WidgetWrap):
     def cargar_inventario(self):
         self.inventario = {}
         try:
-            with open("inventario.txt", "r") as file:
+            with open("inventario.txt", "r", encoding="utf-8") as file:
                 for linea in file:
+                    linea = re.sub(r"[^\x20-\x7E]", "", linea)
                     verdura, precio, cantidad = linea.strip().split(": ")
                     self.inventario[verdura] = {
                         "precio": float(precio),
@@ -20,7 +21,7 @@ class AdminView(urwid.WidgetWrap):
             self.inventario = {}
 
     def guardar_inventario(self):
-        with open("inventario.txt", "w") as file:
+        with open("inventario.txt", "a") as file:
             for verdura, datos in self.inventario.items():
                 file.write(f"{verdura}: {datos['precio']}: {datos['cantidad']}\n")
 
@@ -106,27 +107,30 @@ class AdminView(urwid.WidgetWrap):
         if not self.inventario:
             self.mostrar_mensaje("Inventario vacío.")
             return
-
-        items = [urwid.Text(f"{verdura} - Precio: {datos['precio']} - Cantidad: {datos['cantidad']}") for verdura, datos in self.inventario.items()]
+    
+        items = [urwid.Text(f"{verdura} - Precio: {datos['precio']} - Cantidad: {datos['cantidad']}") 
+                 for verdura, datos in self.inventario.items()]
         lista = urwid.ListBox(urwid.SimpleFocusListWalker(items))
         self.verduras_lista = list(self.inventario.keys())
-
+    
+        # Usar BoxAdapter para envolver el ListBox
+        body = urwid.Pile([
+            urwid.Text("Seleccione la verdura a borrar", align='center'),
+            urwid.Divider(),
+            urwid.BoxAdapter(lista, height=10),  # Ajusta la altura según sea necesario
+            urwid.Divider(),
+            urwid.Button("Borrar", on_press=self.confirmar_borrar, user_data=lista),
+            urwid.Button("Cancelar", on_press=self.mostrar_menu)
+        ])
+    
         self.main.loop.widget = urwid.Overlay(
-            urwid.LineBox(urwid.Pile([
-                urwid.Text("Seleccione la verdura a borrar", align='center'),
-                urwid.Divider(),
-                lista,
-                urwid.Divider(),
-                urwid.Button("Borrar", on_press=self.confirmar_borrar, user_data=lista),
-                urwid.Button("Cancelar", on_press=self.mostrar_menu)
-            ])),
+            urwid.LineBox(urwid.Filler(body, valign='top')),
             self.main.loop.widget,
             align='center',
             width=50,
             height=15,
             valign='middle'
         )
-
     def confirmar_borrar(self, button, lista):
         focus_widget, index = lista.get_focus()
         if index is not None:
