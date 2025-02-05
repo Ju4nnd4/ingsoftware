@@ -1,6 +1,5 @@
 import urwid
 import re
-import uuid  # Para generar IDs únicos
 
 class AdminView(urwid.WidgetWrap):
     def __init__(self, main):
@@ -12,6 +11,7 @@ class AdminView(urwid.WidgetWrap):
 
     def cargar_inventario(self):
         self.inventario = {}
+        self.ultimo_id = 0  # Inicializar el contador de IDs
         try:
             with open("inventario.txt", "r", encoding="utf-8") as file:
                 for linea in file:
@@ -23,6 +23,9 @@ class AdminView(urwid.WidgetWrap):
                         "precio_venta": float(precio_venta),
                         "cantidad": int(cantidad)
                     }
+                    # Actualizar el último ID
+                    if int(id_producto) > self.ultimo_id:
+                        self.ultimo_id = int(id_producto)
         except FileNotFoundError:
             self.inventario = {}
 
@@ -30,6 +33,10 @@ class AdminView(urwid.WidgetWrap):
         with open("inventario.txt", "w", encoding="utf-8") as file:
             for id_producto, datos in self.inventario.items():
                 file.write(f"{id_producto}: {datos['nombre']}: {datos['precio_compra']}: {datos['precio_venta']}: {datos['cantidad']}\n")
+
+    def generar_nuevo_id(self):
+        self.ultimo_id += 1  # Incrementar el último ID
+        return str(self.ultimo_id)
 
     def mostrar_menu(self, *args):
         pile = urwid.Pile([
@@ -39,7 +46,9 @@ class AdminView(urwid.WidgetWrap):
             urwid.Button("Ver inventario", on_press=self.ver_inventario),
             urwid.Button("Agregar producto", on_press=self.agregar_producto),
             urwid.Button("Borrar producto", on_press=self.borrar_producto),
-            urwid.Button("Cambiar precio de venta", on_press=self.cambiar_precio_venta),  # Cambio de nombre
+            urwid.Button("Cambiar precio de venta", on_press=self.cambiar_precio_venta),
+            urwid.Button("Generar pedido", on_press=self.generar_pedido),
+            urwid.Button("Cargar pedido", on_press=self.cargar_pedido),
             urwid.Divider(),
             urwid.Button("Volver al inicio", on_press=self.volver_al_inicio),
         ])
@@ -113,7 +122,7 @@ class AdminView(urwid.WidgetWrap):
             precio_compra = float(precio_compra)
             precio_venta = float(precio_venta)
             cantidad = int(cantidad)
-            id_producto = str(uuid.uuid4())  # Generar un ID único
+            id_producto = self.generar_nuevo_id()  # Generar un ID secuencial
             self.inventario[id_producto] = {
                 "nombre": nombre,
                 "precio_compra": precio_compra,
@@ -242,6 +251,80 @@ class AdminView(urwid.WidgetWrap):
                 self.mostrar_mensaje("Error: El producto no existe en el inventario.")
         except ValueError:
             self.mostrar_mensaje("Error: El precio debe ser un número.")
+
+    def generar_pedido(self, button):
+        self.nombre_pedido_edit = urwid.Edit("Nombre del producto: ")
+        self.precio_pedido_edit = urwid.Edit("Precio de compra: ")
+        self.cantidad_pedido_edit = urwid.Edit("Cantidad: ")
+    
+        self.main.loop.widget = urwid.Overlay(
+            urwid.LineBox(urwid.Pile([
+                urwid.Text("Generar pedido", align='center'),
+                urwid.Divider(),
+                self.nombre_pedido_edit,
+                self.precio_pedido_edit,
+                self.cantidad_pedido_edit,
+                urwid.Divider(),
+                urwid.Button("Guardar", on_press=self.guardar_pedido),
+                urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
+            ])),
+            self.main.loop.widget,
+            align='center',
+            width=40,
+            height=12,
+            valign='middle'
+        )
+
+    def guardar_pedido(self, button):
+        nombre = self.nombre_pedido_edit.edit_text.strip()
+        precio = self.precio_pedido_edit.edit_text.strip()
+        cantidad = self.cantidad_pedido_edit.edit_text.strip()
+
+        if not nombre or not precio or not cantidad:
+            self.mostrar_mensaje("Error: Todos los campos son obligatorios.")
+            return
+        
+        try:
+            precio = float(precio)
+            cantidad = int(cantidad)
+            with open("pedido.txt", "a", encoding="utf-8") as file:
+                file.write(f"{nombre}: {precio}: {cantidad}\n")
+            self.mostrar_mensaje(f"'{nombre}' agregado al pedido.")
+        except ValueError:
+            self.mostrar_mensaje("Error: El precio debe ser un número y la cantidad un entero.")
+
+    def cargar_pedido(self, button):
+        try:
+            with open("pedido.txt", "r", encoding="utf-8") as file:
+                for linea in file:
+                    linea = re.sub(r"[^\x20-\x7E]", "", linea)
+                    nombre, precio, cantidad = linea.strip().split(": ")
+                    precio = float(precio)
+                    cantidad = int(cantidad)
+                    self.agregar_producto_desde_pedido(nombre, precio, cantidad)
+            self.mostrar_mensaje("Pedido cargado exitosamente.")
+        except FileNotFoundError:
+            self.mostrar_mensaje("Error: No se encontró el archivo 'pedido.txt'.")
+        except ValueError:
+            self.mostrar_mensaje("Error: Formato incorrecto en el archivo 'pedido.txt'.")
+
+    def agregar_producto_desde_pedido(self, nombre, precio_compra, cantidad):
+        # Buscar si el producto ya existe en el inventario con el mismo precio de compra
+        for id_producto, datos in self.inventario.items():
+            if datos["nombre"] == nombre and datos["precio_compra"] == precio_compra:
+                self.inventario[id_producto]["cantidad"] += cantidad
+                self.guardar_inventario()
+                return
+        
+        # Si no existe, agregar como un nuevo producto
+        id_producto = self.generar_nuevo_id()  # Generar un ID secuencial
+        self.inventario[id_producto] = {
+            "nombre": nombre,
+            "precio_compra": precio_compra,
+            "precio_venta": precio_compra * 1.5,  # Precio de venta = Precio de compra * 1.5
+            "cantidad": cantidad
+        }
+        self.guardar_inventario()
 
     def mostrar_mensaje(self, mensaje):
         mensaje_box = urwid.Overlay(
