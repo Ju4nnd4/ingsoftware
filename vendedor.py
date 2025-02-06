@@ -1,49 +1,251 @@
 import urwid
+import datetime
+import os
+import warnings
+from urwid.widget import ColumnsWarning
+
+# Ignorar warnings específicos de urwid
+warnings.filterwarnings("ignore", category=ColumnsWarning)
 
 class VendedorView(urwid.WidgetWrap):
     def __init__(self, main):
         self.main = main
+        self.carrito = []
+        self.total_ganancia = 0.0
         self.cargar_inventario()
-        self.mostrar_menu()
-
+        
+        # Crear elementos de la UI
+        self.inventario_frame = self.crear_inventario_frame()
+        self.carrito_listbox = urwid.SimpleListWalker([])
+        self.actualizar_carrito_ui()
+        
+        # Diseño principal
+        self.columns = urwid.Columns([
+            ('weight', 2, self.inventario_frame),
+            ('weight', 1, urwid.LineBox(urwid.ListBox(self.carrito_listbox))),
+        ])
+        
+        pile = urwid.Pile([
+            urwid.Text("Vendedor - Sistema de Ventas", align='center'),
+            urwid.Divider(),
+            self.columns,
+            urwid.Divider(),
+            urwid.Button("Finalizar Venta", on_press=self.finalizar_venta),
+            urwid.Button("Cerrar Caja", on_press=self.cerrar_caja),
+            urwid.Button("Volver al inicio", on_press=self.volver_al_inicio)
+        ])
+        
+        super().__init__(urwid.Filler(pile, valign='top'))
+    
+    def crear_inventario_frame(self):
+        """Crea el contenedor del inventario para poder refrescarlo"""
+        self.inventario_listbox = self.crear_lista_inventario()
+        return urwid.LineBox(urwid.BoxAdapter(self.inventario_listbox, 20))
+    
     def cargar_inventario(self):
+        """Carga el inventario desde el archivo inventario.txt"""
         self.inventario = {}
         try:
-            with open("inventario.txt", "r") as file:
+            with open("inventario.txt", "r", encoding="utf-8") as file:
                 for linea in file:
-                    verdura, precio, cantidad = linea.strip().split(": ")
-                    self.inventario[verdura] = {
-                        "precio": float(precio),
-                        "cantidad": int(cantidad)
-                    }
+                    partes = linea.strip().split(": ")
+                    if len(partes) >= 5:
+                        id_producto = partes[0]
+                        self.inventario[id_producto] = {
+                            "nombre": partes[1],
+                            "precio_compra": float(partes[2]),
+                            "precio_venta": float(partes[3]),
+                            "cantidad": int(partes[4])
+                        }
         except FileNotFoundError:
             self.inventario = {}
 
-    def mostrar_menu(self):
-        pile = urwid.Pile([
-            urwid.Divider(),
-            urwid.Text("Menú de Vendedor", align='center'),
-            urwid.Divider(),
-            urwid.Button("Ver inventario", on_press=self.ver_inventario),
-            urwid.Divider(),
-            urwid.Button("Salir", on_press=self.main.mostrar_login)
-        ])
-        self._w = urwid.Filler(pile, valign='top')
+    def crear_lista_inventario(self):
+        """Crea la lista de productos disponibles en el inventario"""
+        items = []
+        for id_producto, datos in self.inventario.items():
+            if datos['cantidad'] > 0:
+                btn = urwid.Button(
+                    f"{id_producto}: {datos['nombre']} - ${datos['precio_venta']} ({datos['cantidad']} disponibles)",
+                    on_press=self.seleccionar_producto,
+                    user_data=id_producto
+                )
+                items.append(btn)
+        return urwid.ListBox(urwid.SimpleFocusListWalker(items))
 
-    def ver_inventario(self, button):
-        contenido = "\n".join([
-            f"{verdura}: Precio: {datos['precio']}, Cantidad: {datos['cantidad']}"
-            for verdura, datos in self.inventario.items()
-        ])
-        self.mostrar_mensaje(f"Inventario:\n{contenido}")
+    def seleccionar_producto(self, button, id_producto):
+        """Muestra un popup para seleccionar la cantidad del producto"""
+        producto = self.inventario[id_producto]
+        self.producto_seleccionado = producto
+        self.id_seleccionado = id_producto
+        
+        self.cantidad_edit = urwid.Edit("Cantidad a vender: ")
+        
+        self.popup = urwid.Overlay(
+            urwid.LineBox(urwid.Pile([
+                urwid.Text(f"Seleccionar cantidad para\n{producto['nombre']}"),
+                self.cantidad_edit,
+                urwid.Button("Agregar al carrito", on_press=self.agregar_al_carrito),
+                urwid.Button("Cancelar", on_press=self.cerrar_popup)
+            ])),
+            self.main.loop.widget,
+            align='center',
+            width=40,
+            height=8,
+            valign='middle'
+        )
+        self.main.loop.widget = self.popup
 
-    def mostrar_mensaje(self, mensaje):
-        self.main.loop.widget = urwid.Overlay(
-            urwid.LineBox(urwid.Text(f"\n{mensaje}\n", align='center')),
+    def agregar_al_carrito(self, button):
+        """Agrega el producto seleccionado al carrito"""
+        try:
+            cantidad = int(self.cantidad_edit.get_edit_text())
+            producto = self.inventario[self.id_seleccionado]
+            
+            if cantidad <= 0:
+                raise ValueError
+                
+            if cantidad > producto['cantidad']:
+                self.mostrar_error("Cantidad excede el inventario")
+                return
+                
+            # Buscar si ya está en el carrito
+            for item in self.carrito:
+                if item['id'] == self.id_seleccionado:
+                    item['cantidad'] += cantidad
+                    break
+            else:
+                self.carrito.append({
+                    'id': self.id_seleccionado,
+                    'nombre': producto['nombre'],
+                    'precio_venta': producto['precio_venta'],
+                    'precio_compra': producto['precio_compra'],
+                    'cantidad': cantidad
+                })
+            
+            self.actualizar_carrito_ui()
+            self.cerrar_popup(None)
+            
+        except ValueError:
+            self.mostrar_error("Cantidad inválida")
+
+    def actualizar_carrito_ui(self):
+        """Actualiza la interfaz del carrito de compras"""
+        self.carrito_listbox.clear()
+        self.total_ganancia = 0.0
+        
+        for item in self.carrito:
+            total_item = item['cantidad'] * item['precio_venta']
+            ganancia_item = (item['precio_venta'] - item['precio_compra']) * item['cantidad']
+            self.total_ganancia += ganancia_item
+            
+            txt = urwid.Text(
+                f"{item['nombre']} x{item['cantidad']}\n"
+                f"Total: ${total_item:.2f}",
+                align='left'
+            )
+            self.carrito_listbox.append(txt)
+        
+        # Agregar totales
+        self.carrito_listbox.append(urwid.Divider())
+        self.carrito_listbox.append(urwid.Text(f"Ganancia total: ${self.total_ganancia:.2f}", align='center'))
+
+    def cerrar_popup(self, button):
+        """Cierra el popup de selección de cantidad"""
+        self.main.loop.widget = self
+
+    def mostrar_error(self, mensaje):
+        """Muestra un mensaje de error en un popup"""
+        error_popup = urwid.Overlay(
+            urwid.LineBox(urwid.Pile([
+                urwid.Text(('error', mensaje), align='center'),
+                urwid.Button("OK", on_press=self.cerrar_popup)
+            ])),
             self.main.loop.widget,
             align='center',
             width=30,
             height=5,
-            valign='middle'  # Añadimos el argumento valign
+            valign='middle'
         )
-        self.mostrar_menu()
+        self.main.loop.widget = error_popup
+
+    def finalizar_venta(self, button):
+        """Finaliza la venta, actualiza el inventario y guarda la transacción"""
+        if not self.carrito:
+            self.mostrar_error("Carrito vacío")
+            return
+            
+        # Actualizar inventario
+        for item in self.carrito:
+            id_producto = item['id']
+            self.inventario[id_producto]['cantidad'] -= item['cantidad']
+            
+        # Guardar inventario actualizado
+        with open("inventario.txt", "w", encoding="utf-8") as f:
+            for id_producto, datos in self.inventario.items():
+                f.write(f"{id_producto}: {datos['nombre']}: {datos['precio_compra']}: "
+                        f"{datos['precio_venta']}: {datos['cantidad']}\n")
+        
+        # Recargar y refrescar inventario
+        self.cargar_inventario()
+        self.refrescar_inventario()
+        
+        # Guardar venta en historial
+        fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open("ventas.txt", "a", encoding="utf-8") as f:
+            f.write(f"Fecha: {fecha}\n")
+            for item in self.carrito:
+                f.write(f"Producto: {item['nombre']} x{item['cantidad']} - "
+                        f"Ganancia: ${(item['precio_venta'] - item['precio_compra']) * item['cantidad']:.2f}\n")
+            f.write(f"Ganancia Total: ${self.total_ganancia:.2f}\n")
+            f.write("="*50 + "\n")
+        
+        # Resetear carrito
+        self.carrito = []
+        self.actualizar_carrito_ui()
+        self.mostrar_error("Venta finalizada exitosamente")
+
+    def refrescar_inventario(self):
+        """Actualiza la lista del inventario y su contenedor"""
+        nuevo_inventario = self.crear_lista_inventario()
+        nuevo_frame = urwid.LineBox(urwid.BoxAdapter(nuevo_inventario, 20))
+        self.inventario_frame = nuevo_frame
+        self.columns.contents[0] = (self.inventario_frame, self.columns.contents[0][1])
+
+    def cerrar_caja(self, button):
+        """Cierra la caja y guarda las ventas del día en un archivo"""
+        # Crear la carpeta 'diario' si no existe
+        if not os.path.exists("diario"):
+            os.makedirs("diario")
+        
+        # Obtener la fecha actual
+        fecha_actual = datetime.datetime.now().strftime("%Y-%m-%d")
+        nombre_archivo = f"diario/ventas_dia_{fecha_actual}.txt"
+        
+        # Leer el archivo de ventas y filtrar las del día actual
+        ventas_del_dia = []
+        try:
+            with open("ventas.txt", "r", encoding="utf-8") as f:
+                ventas = f.read().split("=" * 50 + "\n")  # Separar por ventas
+                for venta in ventas:
+                    if f"Fecha: {fecha_actual}" in venta:
+                        ventas_del_dia.append(venta.strip())
+        except FileNotFoundError:
+            self.mostrar_error("No hay ventas registradas hoy.")
+            return
+        
+        # Guardar las ventas del día en un archivo con el formato deseado
+        if ventas_del_dia:
+            with open(nombre_archivo, "w", encoding="utf-8") as f:
+                f.write("\n\n----------------------------------------------------------------\n\n".join(ventas_del_dia))
+            self.mostrar_error(f"Caja cerrada. Ventas guardadas en {nombre_archivo}.")
+        else:
+            self.mostrar_error("No hay ventas registradas hoy.")
+
+    def volver_al_inicio(self, button):
+        """Regresa a la pantalla de inicio de sesión"""
+        self.main.mostrar_login()
+        
+    def volver_al_inicio(self, button):
+        """Regresa a la pantalla de inicio de sesión"""
+        self.main.mostrar_login()
