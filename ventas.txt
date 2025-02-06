@@ -10,3 +10,14 @@ Producto: Arequipe x1 - Total: $3300.00
 Producto: Calabaza x4 - Total: $11.60
 Total de la venta: $3325.10
 ==================================================
+Fecha: 2025-02-05 19:59:09
+Producto: Arequipe x1 - Total: $3300.00
+Producto: Alcachofa x2 - Total: $7.00
+Total de la venta: $3307.00
+==================================================
+Fecha: 2025-02-05 20:32:30
+Producto: Brcoli x5 - Total: $15.00
+Producto: Apio x3 - Total: $5.10
+Producto: Calabaza x3 - Total: $8.70
+Total de la venta: $28.80
+==================================================

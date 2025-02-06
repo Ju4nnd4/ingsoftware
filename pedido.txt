@@ -1,3 +1,4 @@
 manzana: 2.0: 30
 manzana: 1.4: 20
 arandanos: 1.5: 10
+MaracuyasVerdes: 2.0: 100

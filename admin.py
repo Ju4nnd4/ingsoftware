@@ -1,5 +1,8 @@
-import urwid
+import tkinter as tk
+from tkinter import filedialog
 import re
+import urwid
+
 
 class AdminView(urwid.WidgetWrap):
     def __init__(self, main):
@@ -65,7 +68,8 @@ class AdminView(urwid.WidgetWrap):
                     f"ID: {id_producto} | Nombre: {datos['nombre']} | "
                     f"Precio de compra: {datos['precio_compra']} | "
                     f"Precio de venta: {datos['precio_venta']} | "
-                    f"Cantidad: {datos['cantidad']}",
+                    f"Cantidad: {datos['cantidad']}" +
+                    (" (!!!)" if datos['cantidad'] < 5 else ""),
                     align='left'
                 )
                 for id_producto, datos in self.inventario.items()
@@ -81,13 +85,13 @@ class AdminView(urwid.WidgetWrap):
             urwid.Divider(),
             urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
         ])
-    
+
         self.main.loop.widget = urwid.Overlay(
             urwid.LineBox(urwid.Filler(body, valign='top')),
             self.main.loop.widget,
-            align='center',
-            width=80,  # Aumentar el ancho para mostrar más información
-            height=min(25, len(self.inventario) + 10),  # Ajustar altura dinámicamente
+            align='left',  # Cambia a 'center', 'right', o 'left' para mover el recuadro
+            width=100,  # Aumentar el ancho
+            height=min(30, len(self.inventario) + 10),  # Aumentar la altura
             valign='middle'
         )
 
@@ -302,19 +306,33 @@ class AdminView(urwid.WidgetWrap):
             self.mostrar_mensaje("Error: El precio debe ser un número y la cantidad un entero.")
 
     def cargar_pedido(self, button):
+        # Inicializar tkinter
+        root = tk.Tk()
+        root.withdraw()  # Ocultar la ventana principal de tkinter
+
+        # Abrir el explorador de archivos para seleccionar un archivo de texto
+        archivo_pedido = filedialog.askopenfilename(
+            title="Seleccionar archivo de pedido",
+            filetypes=[("Archivos de texto", "*.txt"), ("Todos los archivos", "*.*")]
+        )
+
+        if not archivo_pedido:
+            self.mostrar_mensaje("No se seleccionó ningún archivo.")
+            return
+
         try:
-            with open("pedido.txt", "r", encoding="utf-8") as file:
+            with open(archivo_pedido, "r", encoding="utf-8") as file:
                 for linea in file:
-                    linea = re.sub(r"[^\x20-\x7E]", "", linea)
+                    linea = re.sub(r"[^\x20-\x7E]", "", linea)  # Limpiar caracteres no válidos
                     nombre, precio, cantidad = linea.strip().split(": ")
                     precio = float(precio)
                     cantidad = int(cantidad)
                     self.agregar_producto_desde_pedido(nombre, precio, cantidad)
             self.mostrar_mensaje("Pedido cargado exitosamente.")
         except FileNotFoundError:
-            self.mostrar_mensaje("Error: No se encontró el archivo 'pedido.txt'.")
+            self.mostrar_mensaje("Error: No se encontró el archivo de pedido.")
         except ValueError:
-            self.mostrar_mensaje("Error: Formato incorrecto en el archivo 'pedido.txt'.")
+            self.mostrar_mensaje("Error: Formato incorrecto en el archivo de pedido.")
 
     def agregar_producto_desde_pedido(self, nombre, precio_compra, cantidad):
         # Buscar si el producto ya existe en el inventario con el mismo precio de compra

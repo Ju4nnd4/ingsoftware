@@ -65,8 +65,11 @@ class VendedorView(urwid.WidgetWrap):
         items = []
         for id_producto, datos in self.inventario.items():
             if datos['cantidad'] > 0:
+                nombre_producto = datos['nombre']
+                if datos['cantidad'] < 5:
+                    nombre_producto += " (!!!)"
                 btn = urwid.Button(
-                    f"{id_producto}: {datos['nombre']} - ${datos['precio_venta']} ({datos['cantidad']} disponibles)",
+                    f"{id_producto}: {nombre_producto} - ${datos['precio_venta']} ({datos['cantidad']} disponibles)",
                     on_press=self.seleccionar_producto,
                     user_data=id_producto
                 )
@@ -132,7 +135,7 @@ class VendedorView(urwid.WidgetWrap):
     def actualizar_carrito_ui(self):
         """Actualiza la interfaz del carrito de compras"""
         self.carrito_listbox.clear()
-        self.total_venta = 0.0  # Cambiamos de total_ganancia a total_venta
+        self.total_venta = 0.0
         
         for item in self.carrito:
             total_item = item['cantidad'] * item['precio_venta']
@@ -148,6 +151,7 @@ class VendedorView(urwid.WidgetWrap):
         # Agregar totales
         self.carrito_listbox.append(urwid.Divider())
         self.carrito_listbox.append(urwid.Text(f"Total de la venta: ${self.total_venta:.2f}", align='center'))
+
     def cerrar_popup(self, button):
         """Cierra el popup de selección de cantidad"""
         self.main.loop.widget = self
@@ -194,7 +198,7 @@ class VendedorView(urwid.WidgetWrap):
             f.write(f"Fecha: {fecha}\n")
             for item in self.carrito:
                 f.write(f"Producto: {item['nombre']} x{item['cantidad']} - "
-                        f"Total: ${item['precio_venta'] * item['cantidad']:.2f}\n")
+                    f"Total: ${item['precio_venta'] * item['cantidad']:.2f}\n")
             f.write(f"Total de la venta: ${self.total_venta:.2f}\n")  # Cambiamos a total de la venta
             f.write("="*50 + "\n")
         
