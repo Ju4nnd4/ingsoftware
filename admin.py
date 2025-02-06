@@ -52,6 +52,7 @@ class AdminView(urwid.WidgetWrap):
             urwid.Button("Cambiar precio de venta", on_press=self.cambiar_precio_venta),
             urwid.Button("Generar pedido", on_press=self.generar_pedido),
             urwid.Button("Cargar pedido", on_press=self.cargar_pedido),
+            urwid.Button("Ver ventas", on_press=self.ver_ventas),  # Nuevo botón para ver ventas
             urwid.Divider(),
             urwid.Button("Volver al inicio", on_press=self.volver_al_inicio),
         ])
@@ -92,6 +93,33 @@ class AdminView(urwid.WidgetWrap):
             align='left',  # Cambia a 'center', 'right', o 'left' para mover el recuadro
             width=100,  # Aumentar el ancho
             height=min(30, len(self.inventario) + 10),  # Aumentar la altura
+            valign='middle'
+        )
+    
+    def ver_ventas(self, button):
+        try:
+            with open("ventas.txt", "r", encoding="utf-8") as file:
+                contenido = [urwid.Text(linea.strip(), align='left') for linea in file]
+        except FileNotFoundError:
+            contenido = [urwid.Text("No hay ventas registradas.", align='center')]
+
+        # Crear un ListBox para permitir el desplazamiento vertical
+        lista = urwid.ListBox(urwid.SimpleFocusListWalker(contenido))
+
+        body = urwid.Pile([
+            urwid.Text("Ventas:", align='center'),
+            urwid.Divider(),
+            urwid.BoxAdapter(lista, height=min(20, len(contenido) + 5)),  # Ajustar altura
+            urwid.Divider(),
+            urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
+        ])
+
+        self.main.loop.widget = urwid.Overlay(
+            urwid.LineBox(urwid.Filler(body, valign='top')),
+            self.main.loop.widget,
+            align='left',  # Cambia a 'center', 'right', o 'left' para mover el recuadro
+            width=100,  # Aumentar el ancho
+            height=min(30, len(contenido) + 10),  # Aumentar la altura
             valign='middle'
         )
 
