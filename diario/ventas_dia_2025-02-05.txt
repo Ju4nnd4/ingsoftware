@@ -11,3 +11,49 @@ Producto: Coliflor x5 - Total: $13.50
 Producto: Arequipe x1 - Total: $3300.00
 Producto: Calabaza x4 - Total: $11.60
 Total de la venta: $3325.10
+
+----------------------------------------------------------------
+
+Fecha: 2025-02-05 19:59:09
+Producto: Arequipe x1 - Total: $3300.00
+Producto: Alcachofa x2 - Total: $7.00
+Total de la venta: $3307.00
+
+----------------------------------------------------------------
+
+Fecha: 2025-02-05 20:32:30
+Producto: Brcoli x5 - Total: $15.00
+Producto: Apio x3 - Total: $5.10
+Producto: Calabaza x3 - Total: $8.70
+Total de la venta: $28.80
+
+----------------------------------------------------------------
+
+Fecha: 2025-02-05 20:36:41
+Producto: Zanahoria x5 - Total: $16.00
+Producto: Papa x10 - Total: $20.00
+Producto: Rabano x10 - Total: $12.00
+Producto: Platanosazules x100 - Total: $37500.00
+Producto: ArequipeAgrio x10 - Total: $1506.00
+Total de la venta: $39054.00
+
+----------------------------------------------------------------
+
+Fecha: 2025-02-05 20:36:51
+Producto: Pepino x4 - Total: $4000.00
+Producto: Rabano x2 - Total: $2.40
+Total de la venta: $4002.40
+
+----------------------------------------------------------------
+
+Fecha: 2025-02-05 20:41:23
+Producto: Papa x1 - Total: $2.00
+Total de la venta: $2.00
+
+----------------------------------------------------------------
+
+Fecha: 2025-02-05 20:41:31
+Producto: Berro x4 - Total: $5.20
+Total de la venta: $5.20
+
+Total de ventas del día: $49748.10

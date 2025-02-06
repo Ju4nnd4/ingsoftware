@@ -1,5 +1,6 @@
 import urwid
 import datetime
+import re
 import os
 import warnings
 from urwid.widget import ColumnsWarning
@@ -226,12 +227,18 @@ class VendedorView(urwid.WidgetWrap):
         
         # Leer el archivo de ventas y filtrar las del día actual
         ventas_del_dia = []
+        total_ventas_dia = 0.0  # Variable para almacenar la suma total de ventas del día
         try:
             with open("ventas.txt", "r", encoding="utf-8") as f:
                 ventas = f.read().split("=" * 50 + "\n")  # Separar por ventas
                 for venta in ventas:
                     if f"Fecha: {fecha_actual}" in venta:
                         ventas_del_dia.append(venta.strip())
+                        # Extraer el total de ventas de cada transacción usando una expresión regular
+                        for line in venta.split("\n"):
+                            match = re.search(r"Total de la venta: \$(\d+\.\d+)", line)
+                            if match:
+                                total_ventas_dia += float(match.group(1))  # Sumar el total de la venta
         except FileNotFoundError:
             self.mostrar_error("No hay ventas registradas hoy.")
             return
@@ -240,13 +247,10 @@ class VendedorView(urwid.WidgetWrap):
         if ventas_del_dia:
             with open(nombre_archivo, "w", encoding="utf-8") as f:
                 f.write("\n\n----------------------------------------------------------------\n\n".join(ventas_del_dia))
+                f.write("\n\nTotal de ventas del día: ${:.2f}".format(total_ventas_dia))  # Escribir total ventas del día
             self.mostrar_error(f"Caja cerrada. Ventas guardadas en {nombre_archivo}.")
         else:
             self.mostrar_error("No hay ventas registradas hoy.")
-
-    def volver_al_inicio(self, button):
-        """Regresa a la pantalla de inicio de sesión"""
-        self.main.mostrar_login()
         
     def volver_al_inicio(self, button):
         """Regresa a la pantalla de inicio de sesión"""

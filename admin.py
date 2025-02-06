@@ -180,6 +180,7 @@ class AdminView(urwid.WidgetWrap):
             height=15,
             valign='middle'
         )
+        urwid.Button("Volver", on_press=self.volver)  # Usar self.volver
 
     def confirmar_borrar(self, button, id_producto):
         if id_producto in self.inventario:
