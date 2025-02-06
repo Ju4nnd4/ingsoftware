@@ -1,14 +1,13 @@
-Fecha: 2025-02-05 19:29:30
-Producto: Zanahoria x5 - Ganancia: $3.75
-Producto: Tomate x4 - Ganancia: $3.84
-Producto: Cebolla x10 - Ganancia: $4.50
-Producto: Espinaca x5 - Ganancia: $3.15
-Ganancia Total: $15.24
+Fecha: 2025-02-05 19:40:11
+Producto: Espinaca x2 - Total: $4.20
+Producto: Pimiento x1 - Total: $2.40
+Producto: Apio x10 - Total: $17.00
+Total de la venta: $23.60
 
 ----------------------------------------------------------------
 
-Fecha: 2025-02-05 19:29:43
-Producto: Pimiento x10 - Ganancia: $7.20
-Producto: Remolacha x2 - Ganancia: $1.56
-Producto: Berro x10 - Ganancia: $3.90
-Ganancia Total: $12.66
+Fecha: 2025-02-05 19:40:30
+Producto: Coliflor x5 - Total: $13.50
+Producto: Arequipe x1 - Total: $3300.00
+Producto: Calabaza x4 - Total: $11.60
+Total de la venta: $3325.10
