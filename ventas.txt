@@ -55,3 +55,10 @@ Fecha: 2025-03-03 14:56:13
 Producto: Ajo x1 - Total: $0.80
 Total de la venta: $0.80
 ==================================================
+ID Factura: 2
+Fecha: 2025-03-03 15:08:51
+Descuento: 0.0%
+Producto: Ajo x3 - Total: $2.40
+Producto: Champin x1 - Total: $2.80
+Total con descuento: $5.20
+==================================================

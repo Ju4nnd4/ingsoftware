@@ -3,6 +3,7 @@ import datetime
 import re
 import os
 import warnings
+import subprocess  # Para abrir el PDF
 from urwid.widget import ColumnsWarning
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -14,7 +15,8 @@ class VendedorView(urwid.WidgetWrap):
     def __init__(self, main):
         self.main = main
         self.carrito = []
-        self.total_ganancia = 0.0
+        self.total_venta = 0.0
+        self.descuento = 0.0  # Porcentaje de descuento
         self.cargar_inventario()
         
         # Cargar el último ID de factura
@@ -201,8 +203,52 @@ class VendedorView(urwid.WidgetWrap):
             self.mostrar_error("Carrito vacío")
             return
             
+        # Preguntar por el descuento
+        self.descuento_edit = urwid.Edit("Descuento (%): ")
+        
+        self.popup_descuento = urwid.Overlay(
+            urwid.LineBox(urwid.Pile([
+                urwid.Text("Ingrese el porcentaje de descuento:"),
+                self.descuento_edit,
+                urwid.Button("Aplicar descuento", on_press=self.aplicar_descuento),
+                urwid.Button("Sin descuento", on_press=self.sin_descuento)
+            ])),
+            self.main.loop.widget,
+            align='center',
+            width=40,
+            height=8,
+            valign='middle'
+        )
+        self.main.loop.widget = self.popup_descuento
+
+    def aplicar_descuento(self, button):
+        """Aplica el descuento a la venta"""
+        try:
+            self.descuento = float(self.descuento_edit.get_edit_text())
+            if self.descuento < 0 or self.descuento > 100:
+                raise ValueError
+            self.cerrar_popup_descuento()
+            self.procesar_venta()
+        except ValueError:
+            self.mostrar_error("Descuento inválido. Debe ser un número entre 0 y 100.")
+
+    def sin_descuento(self, button):
+        """No aplica descuento a la venta"""
+        self.descuento = 0.0
+        self.cerrar_popup_descuento()
+        self.procesar_venta()
+
+    def cerrar_popup_descuento(self, button=None):
+        """Cierra el popup de descuento"""
+        self.main.loop.widget = self
+
+    def procesar_venta(self):
+        """Procesa la venta con el descuento aplicado"""
         # Generar un ID de factura
         id_factura = self.generar_id_factura()
+        
+        # Calcular el total con descuento
+        total_con_descuento = self.total_venta * (1 - self.descuento / 100)
         
         # Actualizar inventario
         for item in self.carrito:
@@ -222,26 +268,30 @@ class VendedorView(urwid.WidgetWrap):
         # Guardar venta en historial
         fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open("ventas.txt", "a", encoding="utf-8") as f:
-            f.write(f"ID Factura: {id_factura}\n")  # Guardar el ID de factura
+            f.write(f"ID Factura: {id_factura}\n")
             f.write(f"Fecha: {fecha}\n")
+            f.write(f"Descuento: {self.descuento}%\n")  # Guardar el descuento
             for item in self.carrito:
                 f.write(f"Producto: {item['nombre']} x{item['cantidad']} - "
                     f"Total: ${item['precio_venta'] * item['cantidad']:.2f}\n")
-            f.write(f"Total de la venta: ${self.total_venta:.2f}\n")
+            f.write(f"Total con descuento: ${total_con_descuento:.2f}\n")
             f.write("="*50 + "\n")
         
         # Guardar el último ID de factura
         self.guardar_ultimo_id_factura()
         
         # Generar factura en PDF
-        self.generar_factura_pdf(fecha, id_factura)
+        self.generar_factura_pdf(fecha, id_factura, total_con_descuento)
+        
+        # Preguntar si desea abrir el PDF
+        self.preguntar_abrir_pdf(id_factura)
         
         # Resetear carrito
         self.carrito = []
         self.actualizar_carrito_ui()
         self.mostrar_error("Venta finalizada exitosamente")
 
-    def generar_factura_pdf(self, fecha, id_factura):
+    def generar_factura_pdf(self, fecha, id_factura, total_con_descuento):
         """Genera un PDF con la factura de la venta"""
         # Crear el archivo PDF
         nombre_archivo = f"facturas/factura_{id_factura}.pdf"
@@ -257,9 +307,10 @@ class VendedorView(urwid.WidgetWrap):
         c.setFont("Helvetica", 12)
         c.drawString(50, height - 70, f"ID Factura: {id_factura}")
         c.drawString(50, height - 90, f"Fecha: {fecha}")
+        c.drawString(50, height - 110, f"Descuento: {self.descuento}%")
         
         # Detalles de la venta
-        y = height - 120
+        y = height - 140
         c.setFont("Helvetica-Bold", 12)
         c.drawString(50, y, "Producto")
         c.drawString(200, y, "Cantidad")
@@ -278,18 +329,47 @@ class VendedorView(urwid.WidgetWrap):
         # Total de la venta
         c.setFont("Helvetica-Bold", 12)
         c.drawString(300, y - 20, "Total de la Venta:")
-        c.drawString(400, y - 20, f"${self.total_venta:.2f}")
+        c.drawString(400, y - 20, f"${total_con_descuento:.2f}")
         
         # Guardar el PDF
         c.save()
+
+    def preguntar_abrir_pdf(self, id_factura):
+        """Pregunta al usuario si desea abrir el PDF de la factura"""
+        nombre_archivo = f"facturas/factura_{id_factura}.pdf"
+        self.popup_abrir_pdf = urwid.Overlay(
+            urwid.LineBox(urwid.Pile([
+                urwid.Text("¿Desea abrir el PDF de la factura?", align='center'),
+                urwid.Button("Sí", on_press=lambda x: self.abrir_pdf(nombre_archivo)),
+                urwid.Button("No", on_press=self.cerrar_popup_abrir_pdf)
+            ])),
+            self.main.loop.widget,
+            align='center',
+            width=40,
+            height=8,
+            valign='middle'
+        )
+        self.main.loop.widget = self.popup_abrir_pdf
+
+    def abrir_pdf(self, nombre_archivo):
+        """Abre el PDF de la factura"""
+        if os.name == 'nt':  # Windows
+            os.startfile(nombre_archivo)
+        elif os.name == 'posix':  # Linux o macOS
+            subprocess.run(["xdg-open", nombre_archivo])
+        self.cerrar_popup_abrir_pdf()
+
+    def cerrar_popup_abrir_pdf(self, button=None):
+        """Cierra el popup de abrir PDF"""
+        self.main.loop.widget = self
 
     def refrescar_inventario(self):
         """Actualiza la lista del inventario y su contenedor"""
         nuevo_inventario = self.crear_lista_inventario()
         nuevo_frame = urwid.LineBox(urwid.BoxAdapter(nuevo_inventario, 20))
         self.inventario_frame = nuevo_frame
-        self.columns.contents[0] = (self.inventario_frame, self.columns.contents[0][1])
-
+        self
+    
     def cerrar_caja(self, button):
         """Cierra la caja y guarda las ventas del día en un archivo"""
         # Crear la carpeta 'diario' si no existe
@@ -311,7 +391,7 @@ class VendedorView(urwid.WidgetWrap):
                         ventas_del_dia.append(venta.strip())
                         # Extraer el total de ventas de cada transacción usando una expresión regular
                         for line in venta.split("\n"):
-                            match = re.search(r"Total de la venta: \$(\d+\.\d+)", line)
+                            match = re.search(r"Total con descuento: \$(\d+\.\d+)", line)
                             if match:
                                 total_ventas_dia += float(match.group(1))  # Sumar el total de la venta
         except FileNotFoundError:
@@ -326,7 +406,7 @@ class VendedorView(urwid.WidgetWrap):
             self.mostrar_error(f"Caja cerrada. Ventas guardadas en {nombre_archivo}.")
         else:
             self.mostrar_error("No hay ventas registradas hoy.")
-        
+    
     def volver_al_inicio(self, button):
         """Regresa a la pantalla de inicio de sesión"""
         self.main.mostrar_login()
