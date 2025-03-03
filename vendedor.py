@@ -4,6 +4,8 @@ import re
 import os
 import warnings
 from urwid.widget import ColumnsWarning
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 # Ignorar warnings específicos de urwid
 warnings.filterwarnings("ignore", category=ColumnsWarning)
@@ -203,10 +205,54 @@ class VendedorView(urwid.WidgetWrap):
             f.write(f"Total de la venta: ${self.total_venta:.2f}\n")  # Cambiamos a total de la venta
             f.write("="*50 + "\n")
         
+        # Generar factura en PDF
+        self.generar_factura_pdf(fecha)
+        
         # Resetear carrito
         self.carrito = []
         self.actualizar_carrito_ui()
         self.mostrar_error("Venta finalizada exitosamente")
+
+    def generar_factura_pdf(self, fecha):
+        """Genera un PDF con la factura de la venta"""
+        # Crear el archivo PDF
+        nombre_archivo = f"facturas/factura_{fecha.replace(':', '-')}.pdf"
+        if not os.path.exists("facturas"):
+            os.makedirs("facturas")
+        
+        c = canvas.Canvas(nombre_archivo, pagesize=letter)
+        width, height = letter
+        
+        # Encabezado de la factura
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, height - 50, "Factura de Venta")
+        c.setFont("Helvetica", 12)
+        c.drawString(50, height - 70, f"Fecha: {fecha}")
+        
+        # Detalles de la venta
+        y = height - 100
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, "Producto")
+        c.drawString(200, y, "Cantidad")
+        c.drawString(300, y, "Precio Unitario")
+        c.drawString(400, y, "Total")
+        
+        c.setFont("Helvetica", 12)
+        y -= 20
+        for item in self.carrito:
+            c.drawString(50, y, item['nombre'])
+            c.drawString(200, y, str(item['cantidad']))
+            c.drawString(300, y, f"${item['precio_venta']:.2f}")
+            c.drawString(400, y, f"${item['precio_venta'] * item['cantidad']:.2f}")
+            y -= 20
+        
+        # Total de la venta
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(300, y - 20, "Total de la Venta:")
+        c.drawString(400, y - 20, f"${self.total_venta:.2f}")
+        
+        # Guardar el PDF
+        c.save()
 
     def refrescar_inventario(self):
         """Actualiza la lista del inventario y su contenedor"""

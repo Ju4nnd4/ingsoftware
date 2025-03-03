@@ -4,3 +4,4 @@ arandanos: 1.5: 10
 MaracuyasVerdes: 2.0: 100
 Guaracha: 4000.0: 2
 Guasca: 300.0: 24
+mina: 45.0: 3
