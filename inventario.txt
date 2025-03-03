@@ -1,6 +1,6 @@
 1: Zanahoria: 2.45: 3.2: 0
 2: Tomate: 2.24: 3.2: 4
-3: Cebolla: 1.05: 1.5: 10
+3: Cebolla: 1.05: 1.5: 8
 4: Papa: 1.4: 2.0: 1
 5: Calabacin: 1.61: 2.3: 7
 6: Espinaca: 1.47: 2.1: 2
@@ -24,9 +24,9 @@
 24: arandanos: 1.5: 2.25: 37
 25: MaracuyasVerdes: 2.0: 3.0: 198
 26: Platanosazules: 250.0: 375.0: 200
-27: Cocos: 200.0: 300.0: 20
+27: Cocos: 200.0: 300.0: 18
 28: ArequipesVerdes: 300.5: 450.75: 10
-29: ChileBlanco: 200.0: 300.0: 300
+29: ChileBlanco: 200.0: 300.0: 298
 30: ArequipeAgrio: 100.4: 150.60000000000002: 7
-31: ArbejaFria: 100.5: 100.0: 9
-34: ccc: 1020.5: 1530.75: 85
+31: ArbejaFria: 100.5: 100.0: 0
+34: ccc: 1020.5: 1530.75: 80

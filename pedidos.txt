@@ -1,25 +1,5 @@
-Cliente: Juan
-Dirección: Cr 25 #28 - 02
+Cliente: Carla
+Dirección: Carrera 987
 Productos:
-ccc x5
-==================================================
-Cliente: Andre
-Dirección: Cr 15 #32 - 01
-Productos:
-ccc x11
-==================================================
-Cliente: Andre
-Dirección: Cr 45 #32 - 02
-Productos:
-ccc x11
-==================================================
-Cliente: Andre
-Dirección: Cr 32 #23 -01
-Productos:
-ccc x11
-==================================================
-Cliente: Jun
-Dirección: Cr 42 # 12 - 01
-Productos:
-ArbejaFria x1
+Melón x2
 ==================================================
