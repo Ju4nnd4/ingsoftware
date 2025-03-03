@@ -21,12 +21,12 @@
 21: Arequipe: 2310.0: 3300.0: 0
 22: manzana: 2.0: 3.0: 180
 23: manzana: 1.4: 2.0999999999999996: 100
-24: arandanos: 1.5: 2.25: 40
-25: MaracuyasVerdes: 2.0: 3.0: 200
+24: arandanos: 1.5: 2.25: 37
+25: MaracuyasVerdes: 2.0: 3.0: 198
 26: Platanosazules: 250.0: 375.0: 200
 27: Cocos: 200.0: 300.0: 20
 28: ArequipesVerdes: 300.5: 450.75: 10
 29: ChileBlanco: 200.0: 300.0: 300
-30: ArequipeAgrio: 100.4: 150.60000000000002: 10
-31: ArbejaFria: 100.5: 100.0: 10
-34: ccc: 1020.5: 1530.75: 101
+30: ArequipeAgrio: 100.4: 150.60000000000002: 7
+31: ArbejaFria: 100.5: 100.0: 9
+34: ccc: 1020.5: 1530.75: 85

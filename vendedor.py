@@ -38,7 +38,8 @@ class VendedorView(urwid.WidgetWrap):
             urwid.Divider(),
             self.columns,
             urwid.Divider(),
-            urwid.Button("Finalizar Venta", on_press=self.finalizar_venta),
+            urwid.Button("Finalizar Venta", on_press=self.finalizar_venta_local),  # Venta local
+            urwid.Button("Finalizar Venta a Domicilio", on_press=self.finalizar_venta_domicilio),  # Venta a domicilio
             urwid.Button("Cerrar Caja", on_press=self.cerrar_caja),
             urwid.Button("Volver al inicio", on_press=self.volver_al_inicio)
         ])
@@ -197,13 +198,72 @@ class VendedorView(urwid.WidgetWrap):
         )
         self.main.loop.widget = error_popup
 
-    def finalizar_venta(self, button):
-        """Finaliza la venta, actualiza el inventario y guarda la transacción"""
+    def finalizar_venta_local(self, button):
+        """Finaliza una venta local"""
         if not self.carrito:
             self.mostrar_error("Carrito vacío")
             return
-            
+        
         # Preguntar por el descuento
+        self.preguntar_descuento()
+
+    def finalizar_venta_domicilio(self, button):
+        """Finaliza una venta a domicilio"""
+        if not self.carrito:
+            self.mostrar_error("Carrito vacío")
+            return
+        
+        # Preguntar los datos del cliente
+        self.preguntar_datos_cliente()
+
+    def preguntar_datos_cliente(self):
+        """Pregunta los datos del cliente para una venta a domicilio"""
+        self.nombre_cliente_edit = urwid.Edit("Nombre del cliente: ")
+        self.direccion_cliente_edit = urwid.Edit("Dirección del cliente: ")
+        
+        self.popup_datos_cliente = urwid.Overlay(
+            urwid.LineBox(urwid.Pile([
+                urwid.Text("Ingrese los datos del cliente:", align='center'),
+                self.nombre_cliente_edit,
+                self.direccion_cliente_edit,
+                urwid.Button("Continuar", on_press=self.guardar_datos_cliente),
+                urwid.Button("Cancelar", on_press=self.cerrar_popup_datos_cliente)
+            ])),
+            self.main.loop.widget,
+            align='center',
+            width=40,
+            height=10,
+            valign='middle'
+        )
+        self.main.loop.widget = self.popup_datos_cliente
+
+    def guardar_datos_cliente(self, button):
+        """Guarda los datos del cliente y procede con la venta a domicilio"""
+        nombre_cliente = self.nombre_cliente_edit.get_edit_text().strip()
+        direccion_cliente = self.direccion_cliente_edit.get_edit_text().strip()
+        
+        if not nombre_cliente or not direccion_cliente:
+            self.mostrar_error("Debe ingresar nombre y dirección del cliente.")
+            return
+        
+        # Guardar los datos del cliente en pedidos.txt
+        with open("pedidos.txt", "a", encoding="utf-8") as f:
+            f.write(f"Cliente: {nombre_cliente}\n")
+            f.write(f"Dirección: {direccion_cliente}\n")
+            f.write("Productos:\n")
+            for item in self.carrito:
+                f.write(f"{item['nombre']} x{item['cantidad']}\n")
+            f.write("=" * 50 + "\n")
+        
+        self.cerrar_popup_datos_cliente()
+        self.preguntar_descuento()
+
+    def cerrar_popup_datos_cliente(self, button=None):
+        """Cierra el popup de datos del cliente"""
+        self.main.loop.widget = self
+
+    def preguntar_descuento(self):
+        """Pregunta por el descuento"""
         self.descuento_edit = urwid.Edit("Descuento (%): ")
         
         self.popup_descuento = urwid.Overlay(
@@ -281,7 +341,12 @@ class VendedorView(urwid.WidgetWrap):
         self.guardar_ultimo_id_factura()
         
         # Generar factura en PDF
-        self.generar_factura_pdf(fecha, id_factura, total_con_descuento)
+        if hasattr(self, 'nombre_cliente_edit') and hasattr(self, 'direccion_cliente_edit'):
+            # Si es una venta a domicilio, guardar en la carpeta facturas_domicilios
+            self.generar_factura_pdf(fecha, id_factura, total_con_descuento, "facturas_domicilios")
+        else:
+            # Si es una venta local, guardar en la carpeta facturas
+            self.generar_factura_pdf(fecha, id_factura, total_con_descuento, "facturas")
         
         # Preguntar si desea abrir el PDF
         self.preguntar_abrir_pdf(id_factura)
@@ -291,12 +356,12 @@ class VendedorView(urwid.WidgetWrap):
         self.actualizar_carrito_ui()
         self.mostrar_error("Venta finalizada exitosamente")
 
-    def generar_factura_pdf(self, fecha, id_factura, total_con_descuento):
+    def generar_factura_pdf(self, fecha, id_factura, total_con_descuento, carpeta):
         """Genera un PDF con la factura de la venta"""
         # Crear el archivo PDF
-        nombre_archivo = f"facturas/factura_{id_factura}.pdf"
-        if not os.path.exists("facturas"):
-            os.makedirs("facturas")
+        nombre_archivo = f"{carpeta}/factura_{id_factura}.pdf"
+        if not os.path.exists(carpeta):
+            os.makedirs(carpeta)
         
         c = canvas.Canvas(nombre_archivo, pagesize=letter)
         width, height = letter
@@ -309,8 +374,13 @@ class VendedorView(urwid.WidgetWrap):
         c.drawString(50, height - 90, f"Fecha: {fecha}")
         c.drawString(50, height - 110, f"Descuento: {self.descuento}%")
         
+        # Si es una venta a domicilio, agregar datos del cliente
+        if carpeta == "facturas_domicilios":
+            c.drawString(50, height - 130, f"Cliente: {self.nombre_cliente_edit.get_edit_text().strip()}")
+            c.drawString(50, height - 150, f"Dirección: {self.direccion_cliente_edit.get_edit_text().strip()}")
+        
         # Detalles de la venta
-        y = height - 140
+        y = height - 170 if carpeta == "facturas_domicilios" else height - 140
         c.setFont("Helvetica-Bold", 12)
         c.drawString(50, y, "Producto")
         c.drawString(200, y, "Cantidad")

@@ -62,3 +62,39 @@ Producto: Ajo x3 - Total: $2.40
 Producto: Champin x1 - Total: $2.80
 Total con descuento: $5.20
 ==================================================
+ID Factura: 3
+Fecha: 2025-03-03 15:30:43
+Descuento: 0.0%
+Producto: ArequipeAgrio x3 - Total: $451.80
+Total con descuento: $451.80
+==================================================
+ID Factura: 4
+Fecha: 2025-03-03 15:32:20
+Descuento: 10.0%
+Producto: MaracuyasVerdes x2 - Total: $6.00
+Total con descuento: $5.40
+==================================================
+ID Factura: 5
+Fecha: 2025-03-03 15:48:53
+Descuento: 0.0%
+Producto: arandanos x3 - Total: $6.75
+Total con descuento: $6.75
+==================================================
+ID Factura: 6
+Fecha: 2025-03-03 15:49:51
+Descuento: 0.0%
+Producto: ccc x5 - Total: $7653.75
+Total con descuento: $7653.75
+==================================================
+ID Factura: 7
+Fecha: 2025-03-03 15:52:37
+Descuento: 20.0%
+Producto: ccc x11 - Total: $16838.25
+Total con descuento: $13470.60
+==================================================
+ID Factura: 8
+Fecha: 2025-03-03 16:04:00
+Descuento: 0.0%
+Producto: ArbejaFria x1 - Total: $100.00
+Total con descuento: $100.00
+==================================================
