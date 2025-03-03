@@ -17,6 +17,9 @@ class VendedorView(urwid.WidgetWrap):
         self.total_ganancia = 0.0
         self.cargar_inventario()
         
+        # Cargar el último ID de factura
+        self.ultimo_id_factura = self.cargar_ultimo_id_factura()
+        
         # Crear elementos de la UI
         self.inventario_frame = self.crear_inventario_frame()
         self.carrito_listbox = urwid.SimpleListWalker([])
@@ -40,6 +43,24 @@ class VendedorView(urwid.WidgetWrap):
         
         super().__init__(urwid.Filler(pile, valign='top'))
     
+    def cargar_ultimo_id_factura(self):
+        """Carga el último ID de factura desde un archivo"""
+        try:
+            with open("ultima_factura.txt", "r", encoding="utf-8") as f:
+                return int(f.read().strip())
+        except FileNotFoundError:
+            return 0  # Si el archivo no existe, empezamos desde 0
+
+    def guardar_ultimo_id_factura(self):
+        """Guarda el último ID de factura en un archivo"""
+        with open("ultima_factura.txt", "w", encoding="utf-8") as f:
+            f.write(str(self.ultimo_id_factura))
+
+    def generar_id_factura(self):
+        """Genera un nuevo ID de factura"""
+        self.ultimo_id_factura += 1
+        return self.ultimo_id_factura
+
     def crear_inventario_frame(self):
         """Crea el contenedor del inventario para poder refrescarlo"""
         self.inventario_listbox = self.crear_lista_inventario()
@@ -180,6 +201,9 @@ class VendedorView(urwid.WidgetWrap):
             self.mostrar_error("Carrito vacío")
             return
             
+        # Generar un ID de factura
+        id_factura = self.generar_id_factura()
+        
         # Actualizar inventario
         for item in self.carrito:
             id_producto = item['id']
@@ -198,25 +222,29 @@ class VendedorView(urwid.WidgetWrap):
         # Guardar venta en historial
         fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open("ventas.txt", "a", encoding="utf-8") as f:
+            f.write(f"ID Factura: {id_factura}\n")  # Guardar el ID de factura
             f.write(f"Fecha: {fecha}\n")
             for item in self.carrito:
                 f.write(f"Producto: {item['nombre']} x{item['cantidad']} - "
                     f"Total: ${item['precio_venta'] * item['cantidad']:.2f}\n")
-            f.write(f"Total de la venta: ${self.total_venta:.2f}\n")  # Cambiamos a total de la venta
+            f.write(f"Total de la venta: ${self.total_venta:.2f}\n")
             f.write("="*50 + "\n")
         
+        # Guardar el último ID de factura
+        self.guardar_ultimo_id_factura()
+        
         # Generar factura en PDF
-        self.generar_factura_pdf(fecha)
+        self.generar_factura_pdf(fecha, id_factura)
         
         # Resetear carrito
         self.carrito = []
         self.actualizar_carrito_ui()
         self.mostrar_error("Venta finalizada exitosamente")
 
-    def generar_factura_pdf(self, fecha):
+    def generar_factura_pdf(self, fecha, id_factura):
         """Genera un PDF con la factura de la venta"""
         # Crear el archivo PDF
-        nombre_archivo = f"facturas/factura_{fecha.replace(':', '-')}.pdf"
+        nombre_archivo = f"facturas/factura_{id_factura}.pdf"
         if not os.path.exists("facturas"):
             os.makedirs("facturas")
         
@@ -227,10 +255,11 @@ class VendedorView(urwid.WidgetWrap):
         c.setFont("Helvetica-Bold", 16)
         c.drawString(50, height - 50, "Factura de Venta")
         c.setFont("Helvetica", 12)
-        c.drawString(50, height - 70, f"Fecha: {fecha}")
+        c.drawString(50, height - 70, f"ID Factura: {id_factura}")
+        c.drawString(50, height - 90, f"Fecha: {fecha}")
         
         # Detalles de la venta
-        y = height - 100
+        y = height - 120
         c.setFont("Helvetica-Bold", 12)
         c.drawString(50, y, "Producto")
         c.drawString(200, y, "Cantidad")
