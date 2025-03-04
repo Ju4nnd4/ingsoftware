@@ -443,7 +443,12 @@ class AdminView(urwid.WidgetWrap):
         if ventas_filtradas:
             contenido = [urwid.Text(venta, align='left') for venta in ventas_filtradas]
         else:
-            contenido = [urwid.Text("No hay ventas en el rango de fechas especificado.", align='center')]
+            # Mostrar mensaje de "No hay ventas" con un botón de "Volver"
+            contenido = [
+                urwid.Text("No hay ventas en el rango de fechas especificado.", align='center'),
+                urwid.Divider(),
+                urwid.Button("Volver", on_press=self.volver)
+            ]
 
         lista = urwid.ListBox(urwid.SimpleFocusListWalker(contenido))
 
@@ -452,7 +457,7 @@ class AdminView(urwid.WidgetWrap):
             urwid.Divider(),
             urwid.BoxAdapter(lista, height=min(20, len(contenido) + 5)),
             urwid.Divider(),
-            urwid.Button("Volver", on_press=self.volver)
+            urwid.Button("Volver", on_press=self.volver)  # Botón de volver adicional
         ])
 
         self.main.loop.widget = urwid.Overlay(
