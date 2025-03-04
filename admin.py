@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import filedialog
 import re
 import urwid
+from datetime import datetime
+import os
 
 
 class AdminView(urwid.WidgetWrap):
@@ -52,7 +54,8 @@ class AdminView(urwid.WidgetWrap):
             urwid.Button("Cambiar precio de venta", on_press=self.cambiar_precio_venta),
             urwid.Button("Generar pedido", on_press=self.generar_pedido),
             urwid.Button("Cargar pedido", on_press=self.cargar_pedido),
-            urwid.Button("Ver ventas", on_press=self.ver_ventas),  # Nuevo botón para ver ventas
+            urwid.Button("Ver ventas", on_press=self.ver_ventas),
+            urwid.Button("Reporte de ventas por fecha", on_press=self.reporte_ventas_por_fecha),  # Nuevo botón para ver ventas
             urwid.Divider(),
             urwid.Button("Volver al inicio", on_press=self.volver_al_inicio),
         ])
@@ -395,6 +398,107 @@ class AdminView(urwid.WidgetWrap):
         )
         
         self.main.loop.widget = mensaje_box
+    
+    def reporte_ventas_por_fecha(self, button):
+        # Limpiar cualquier estado anterior
+        if hasattr(self, 'fecha_inicio_edit'):
+            del self.fecha_inicio_edit
+        if hasattr(self, 'fecha_fin_edit'):
+            del self.fecha_fin_edit
+
+        # Crear los campos de entrada de texto
+        self.fecha_inicio_edit = urwid.Edit("Fecha de inicio (YYYY-MM-DD): ")
+        self.fecha_fin_edit = urwid.Edit("Fecha de fin (YYYY-MM-DD): ")
+
+        # Crear un Pile para organizar los widgets verticalmente
+        pile = urwid.Pile([
+            urwid.Text("Ingrese el rango de fechas para el reporte:", align='center'),
+            urwid.Divider(),
+            urwid.Text("", align='left'),  # Etiqueta para la fecha de inicio
+            self.fecha_inicio_edit,  # Campo de entrada para la fecha de inicio
+            urwid.Text("", align='left'),    # Etiqueta para la fecha de fin
+            self.fecha_fin_edit,     # Campo de entrada para la fecha de fin
+            urwid.Divider(),
+            urwid.Button("Generar reporte", on_press=self.generar_reporte_ventas),
+            urwid.Button("Volver", on_press=self.volver)
+        ])
+
+        # Limpiar el widget actual antes de mostrar el nuevo
+        self._wrapped_widget = urwid.Filler(pile, valign='top')
+        self.main.loop.widget = self._wrapped_widget
+
+    def generar_reporte_ventas(self, button):
+        fecha_inicio = self.fecha_inicio_edit.get_edit_text()
+        fecha_fin = self.fecha_fin_edit.get_edit_text()
+
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+            fecha_fin = datetime.strptime(fecha_fin, "%Y-%m-%d")
+        except ValueError:
+            self.mostrar_error("Formato de fecha inválido. Use YYYY-MM-DD.")
+            return
+
+        ventas_filtradas = self.filtrar_ventas_por_fecha(fecha_inicio, fecha_fin)
+
+        if ventas_filtradas:
+            contenido = [urwid.Text(venta, align='left') for venta in ventas_filtradas]
+        else:
+            contenido = [urwid.Text("No hay ventas en el rango de fechas especificado.", align='center')]
+
+        lista = urwid.ListBox(urwid.SimpleFocusListWalker(contenido))
+
+        body = urwid.Pile([
+            urwid.Text("Reporte de ventas:", align='center'),
+            urwid.Divider(),
+            urwid.BoxAdapter(lista, height=min(20, len(contenido) + 5)),
+            urwid.Divider(),
+            urwid.Button("Volver", on_press=self.volver)
+        ])
+
+        self.main.loop.widget = urwid.Overlay(
+            urwid.LineBox(urwid.Filler(body, valign='top')),
+            self.main.loop.widget,
+            align='left',
+            width=100,
+            height=min(30, len(contenido) + 10),
+            valign='middle'
+        )
+
+    def filtrar_ventas_por_fecha(self, fecha_inicio, fecha_fin):
+        ventas_filtradas = []
+        # Obtener la ruta del directorio actual (donde está admin.py)
+        directorio_actual = os.path.dirname(os.path.abspath(__file__))
+        # Construir la ruta a la carpeta diario de manera relativa
+        carpeta_diario = os.path.join(directorio_actual, "diario")
+
+        try:
+            # Listar archivos en la carpeta diario
+            for archivo in os.listdir(carpeta_diario):
+                if archivo.startswith("ventas_dia_") and archivo.endswith(".txt"):
+                    # Extraer la fecha del nombre del archivo
+                    fecha_str = archivo.replace("ventas_dia_", "").replace(".txt", "")
+                    try:
+                        fecha_archivo = datetime.strptime(fecha_str, "%Y-%m-%d")
+                        if fecha_inicio <= fecha_archivo <= fecha_fin:
+                            # Leer el archivo y agregar las ventas al reporte
+                            ruta_archivo = os.path.join(carpeta_diario, archivo)
+                            with open(ruta_archivo, "r", encoding="utf-8") as file:
+                                ventas_filtradas.extend(file.readlines())
+                    except ValueError:
+                        continue  # Ignorar archivos con nombres no válidos
+        except FileNotFoundError:
+            self.mostrar_error("No se encontró la carpeta de ventas diarias.")
+        return ventas_filtradas
+    
+    def mostrar_error(self, mensaje):
+        error_text = urwid.Text(mensaje, align='center')
+        pile = urwid.Pile([
+            urwid.Divider(),
+            error_text,
+            urwid.Divider(),
+            urwid.Button("Volver", on_press=self.volver)
+        ])
+        self.main.loop.widget = urwid.Filler(pile, valign='top')
 
     def volver(self, button):
         self.mostrar_menu()  # Regenera el menú principal
