@@ -466,6 +466,8 @@ class AdminView(urwid.WidgetWrap):
 
     def filtrar_ventas_por_fecha(self, fecha_inicio, fecha_fin):
         ventas_filtradas = []
+        total_ventas_rango = 0.0  # Variable para acumular el total de ventas del rango
+
         # Obtener la ruta del directorio actual (donde está admin.py)
         directorio_actual = os.path.dirname(os.path.abspath(__file__))
         # Construir la ruta a la carpeta diario de manera relativa
@@ -483,11 +485,29 @@ class AdminView(urwid.WidgetWrap):
                             # Leer el archivo y agregar las ventas al reporte
                             ruta_archivo = os.path.join(carpeta_diario, archivo)
                             with open(ruta_archivo, "r", encoding="utf-8") as file:
-                                ventas_filtradas.extend(file.readlines())
+                                lineas = file.readlines()
+                                ventas_filtradas.extend(lineas)
+
+                                # Buscar el "Total de ventas del día:" y sumar su valor
+                                for linea in lineas:
+                                    if linea.startswith("Total de ventas del día:"):
+                                        # Extraer el valor numérico
+                                        total_dia_str = linea.split("$")[-1].strip()
+                                        total_dia = float(total_dia_str)
+                                        total_ventas_rango += total_dia
+
+                                        # Agregar un salto de línea después del total
+                                        ventas_filtradas.append("\n")
+                                        break  # Salir del bucle una vez encontrado el total
                     except ValueError:
                         continue  # Ignorar archivos con nombres no válidos
         except FileNotFoundError:
             self.mostrar_error("No se encontró la carpeta de ventas diarias.")
+
+        # Agregar el total de ventas del rango al final del reporte
+        if ventas_filtradas:
+            ventas_filtradas.append(f"\nTotal de ventas del rango de fechas dado: ${total_ventas_rango:.2f}")
+
         return ventas_filtradas
     
     def mostrar_error(self, mensaje):
