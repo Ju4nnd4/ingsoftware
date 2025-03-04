@@ -140,3 +140,39 @@ Descuento: 0.0%
 Producto: ArbejaFria x5 - Total: $500.00
 Total con descuento: $500.00
 ==================================================
+ID Factura: 16
+Fecha: 2025-03-03 19:43:30
+Descuento: 0.0%
+Producto: Cocos x2 - Total: $600.00
+Total con descuento: $600.00
+==================================================
+ID Factura: 17
+Fecha: 2025-03-03 19:47:02
+Descuento: 0.0%
+Producto: ArequipeAgrio x1 - Total: $150.60
+Total con descuento: $150.60
+==================================================
+ID Factura: 18
+Fecha: 2025-03-03 19:52:35
+Descuento: 0.0%
+Producto: ArequipeAgrio x3 - Total: $451.80
+Total con descuento: $451.80
+==================================================
+ID Factura: 19
+Fecha: 2025-03-03 20:01:36
+Descuento: 0.0%
+Producto: ArequipeAgrio x1 - Total: $150.60
+Total con descuento: $150.60
+==================================================
+ID Factura: 20
+Fecha: 2025-03-03 20:03:29
+Descuento: 0.0%
+Producto: ccc x2 - Total: $3061.50
+Total con descuento: $3061.50
+==================================================
+ID Factura: 21
+Fecha: 2025-03-03 20:11:05
+Descuento: 0.0%
+Producto: ccc x2 - Total: $3061.50
+Total con descuento: $3061.50
+==================================================
