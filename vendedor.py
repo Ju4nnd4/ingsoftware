@@ -240,23 +240,23 @@ class VendedorView(urwid.WidgetWrap):
         self.main.loop.widget = self.popup_datos_cliente
 
     def guardar_datos_cliente(self, button):
-        """Guarda los datos del cliente y procede con la venta a domicilio"""
+        """Guarda los datos del cliente y procede con la venta a domicilio."""
         nombre_cliente = self.nombre_cliente_edit.get_edit_text().strip()
         direccion_cliente = self.direccion_cliente_edit.get_edit_text().strip()
-        
+    
         if not nombre_cliente or not direccion_cliente:
             self.mostrar_error("Debe ingresar nombre y dirección del cliente.")
             return
-        
-        # Guardar los datos del cliente en pedidos.txt
-        with open("pedidos.txt", "a", encoding="utf-8") as f:
+    
+        # Guardar los datos del cliente en pedidosDom.txt
+        with open("pedidosDom.txt", "a", encoding="utf-8") as f:
             f.write(f"Cliente: {nombre_cliente}\n")
             f.write(f"Dirección: {direccion_cliente}\n")
             f.write("Productos:\n")
             for item in self.carrito:
                 f.write(f"{item['nombre']} x{item['cantidad']}\n")
-            f.write("=" * 50 + "\n")
-        
+            f.write("=" * 50 + "\n")  # Asegurar que el separador esté al final
+    
         self.cerrar_popup_datos_cliente()
         self.preguntar_descuento()
 
@@ -484,9 +484,9 @@ class VendedorView(urwid.WidgetWrap):
         self.main.mostrar_login()
 
     def agendar_pedido(self, button):
-        """Toma automáticamente los primeros 5 pedidos de pedidos.txt y los guarda en pedido#.txt"""
+        """Toma automáticamente los primeros 5 pedidos de pedidosDom.txt y los guarda en pedido#.txt dentro de la carpeta 'pedidos pendientes'."""
         try:
-            with open("pedidos.txt", "r", encoding="utf-8") as f:
+            with open("pedidosDom.txt", "r", encoding="utf-8") as f:
                 pedidos = f.read().split("=" * 50 + "\n")  # Separar por pedidos
                 pedidos = [p.strip() for p in pedidos if p.strip()]  # Eliminar pedidos vacíos
         except FileNotFoundError:
@@ -500,47 +500,60 @@ class VendedorView(urwid.WidgetWrap):
         # Tomar los primeros 5 pedidos
         primeros_pedidos = pedidos[:5]
     
+        # Crear la carpeta 'pedidos pendientes' si no existe
+        carpeta_pedidos = "pedidos pendientes"
+        if not os.path.exists(carpeta_pedidos):
+            os.makedirs(carpeta_pedidos)
+    
         # Buscar el siguiente número de pedido disponible
         numero_pedido = 1
-        while os.path.exists(f"pedido{numero_pedido}.txt"):
+        while os.path.exists(os.path.join(carpeta_pedidos, f"pedido{numero_pedido}.txt")):
             numero_pedido += 1
     
-        # Guardar los 5 pedidos en el archivo pedido#.txt
-        nombre_archivo = f"pedido{numero_pedido}.txt"
+        # Guardar los 5 pedidos en el archivo pedido#.txt dentro de la carpeta 'pedidos pendientes'
+        nombre_archivo = os.path.join(carpeta_pedidos, f"pedido{numero_pedido}.txt")
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             # Unir los pedidos con el separador y un salto de línea antes de cada separador
             contenido = ("\n" + "=" * 50 + "\n").join(primeros_pedidos)
             f.write(contenido)
     
-        # Eliminar los primeros 5 pedidos de pedidos.txt
+        # Eliminar los primeros 5 pedidos de pedidosDom.txt
         pedidos_restantes = pedidos[5:]  # Tomar los pedidos restantes (después del quinto)
-        with open("pedidos.txt", "w", encoding="utf-8") as f:
-            f.write(("=" * 50 + "\n").join(pedidos_restantes))
     
-        # Mostrar mensaje de éxito
-        self.mostrar_error(f"Los primeros 5 pedidos han sido agendados en {nombre_archivo}.")
+        # Guardar los pedidos restantes en pedidosDom.txt con el formato correcto
+        with open("pedidosDom.txt", "w", encoding="utf-8") as f:
+            # Unir los pedidos restantes con el separador y un salto de línea antes de cada separador
+            contenido_restante = ("\n" + "=" * 50 + "\n").join(pedidos_restantes)
+            f.write(contenido_restante + "\n" + "=" * 50 + "\n")  # Asegurar que el separador esté al final
     
-        # Cerrar cualquier popup o ventana emergente
-        self.cerrar_popup_agendar_pedido()
+        # Mostrar un recuadro emergente con un mensaje de éxito
+        self.mostrar_mensaje_exito(f"Los primeros 5 pedidos han sido agendados en {nombre_archivo}.")
+
+    def mostrar_mensaje_exito(self, mensaje):
+        """Muestra un recuadro emergente con un mensaje de éxito y un botón 'Cerrar'."""
+        # Crear el contenido del popup
+        popup_content = urwid.Pile([
+            urwid.Text(("success", mensaje), align="center"),
+            urwid.Divider(),
+            urwid.Button("Cerrar", on_press=self.cerrar_popup_mensaje_exito)
+        ])
     
-        # Volver al menú principal
+        # Crear el popup
+        self.popup_mensaje_exito = urwid.Overlay(
+            urwid.LineBox(popup_content),
+            self.main.loop.widget,
+            align="center",
+            width=("relative", 50),  # Ancho del popup (50% del ancho de la pantalla)
+            valign="middle",
+            height=7  # Altura del popup
+        )
+    
+        # Mostrar el popup
+        self.main.loop.widget = self.popup_mensaje_exito
+
+    def cerrar_popup_mensaje_exito(self, button=None):
+        """Cierra el popup de mensaje de éxito y regresa al menú principal."""
         self.main.loop.widget = self
-    
-    def seleccionar_pedido(self, button, pedido):
-        """Procesa el pedido seleccionado y genera los archivos correspondientes"""
-        # Generar un número de pedido único
-        self.numero_pedido = self.generar_numero_pedido()
-    
-        # Guardar el pedido en pedido#.txt
-        with open(f"pedido{self.numero_pedido}.txt", "w", encoding="utf-8") as f:
-            f.write(pedido)
-    
-        # Eliminar el pedido de pedidos.txt
-        self.eliminar_pedido(pedido)
-    
-        # Cerrar el popup y mostrar mensaje de éxito
-        self.cerrar_popup_agendar_pedido()
-        self.mostrar_error(f"Pedido {self.numero_pedido} agendado exitosamente.")
    
     def generar_numero_pedido(self):
         """Genera un número de pedido único"""
@@ -558,9 +571,9 @@ class VendedorView(urwid.WidgetWrap):
         return self.ultimo_numero_pedido
 
     def eliminar_pedido(self, pedido):
-        """Elimina el pedido seleccionado de pedidos.txt"""
+        """Elimina el pedido seleccionado de pedidosDom.txt"""
         try:
-            with open("pedidos.txt", "r", encoding="utf-8") as f:
+            with open("pedidosDom.txt", "r", encoding="utf-8") as f:
                 pedidos = f.read().split("=" * 50 + "\n")
                 pedidos = [p.strip() for p in pedidos if p.strip()]  # Eliminar pedidos vacíos
         except FileNotFoundError:
@@ -570,7 +583,7 @@ class VendedorView(urwid.WidgetWrap):
         pedidos = [p for p in pedidos if p != pedido]
     
         # Guardar los pedidos restantes
-        with open("pedidos.txt", "w", encoding="utf-8") as f:
+        with open("pedidosDom.txt", "w", encoding="utf-8") as f:
             f.write(("=" * 50 + "\n").join(pedidos))
     
     def cerrar_popup_agendar_pedido(self, button=None):

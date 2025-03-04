@@ -1,3 +1,8 @@
+Cliente: Carla
+Dirección: Carrera 987
+Productos:
+Melón x2
+==================================================
 Cliente: Juan
 Dirección: Calle 123
 Productos:
@@ -17,8 +22,3 @@ Cliente: Ana
 Dirección: Calle 321
 Productos:
 Uva x4
-==================================================
-Cliente: Luis
-Dirección: Avenida 654
-Productos:
-Sandía x1

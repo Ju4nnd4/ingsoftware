@@ -24,9 +24,9 @@
 24: arandanos: 1.5: 2.25: 37
 25: MaracuyasVerdes: 2.0: 3.0: 198
 26: Platanosazules: 250.0: 375.0: 200
-27: Cocos: 200.0: 300.0: 18
+27: Cocos: 200.0: 300.0: 16
 28: ArequipesVerdes: 300.5: 450.75: 10
 29: ChileBlanco: 200.0: 300.0: 298
-30: ArequipeAgrio: 100.4: 150.60000000000002: 7
+30: ArequipeAgrio: 100.4: 150.60000000000002: 2
 31: ArbejaFria: 100.5: 100.0: 0
-34: ccc: 1020.5: 1530.75: 80
+34: ccc: 1020.5: 1530.75: 76

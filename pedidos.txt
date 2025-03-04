@@ -1,5 +1,0 @@
-Cliente: Carla
-Dirección: Carrera 987
-Productos:
-Melón x2
-==================================================
