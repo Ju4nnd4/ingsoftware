@@ -1,0 +1,24 @@
+Cliente: Juan
+Dirección: Calle 123
+Productos:
+Manzana x3
+==================================================
+Cliente: María
+Dirección: Avenida 456
+Productos:
+Pera x2
+==================================================
+Cliente: Pedro
+Dirección: Carrera 789
+Productos:
+Banana x5
+==================================================
+Cliente: Ana
+Dirección: Calle 321
+Productos:
+Uva x4
+==================================================
+Cliente: Luis
+Dirección: Avenida 654
+Productos:
+Sandía x1

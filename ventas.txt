@@ -98,3 +98,45 @@ Descuento: 0.0%
 Producto: ArbejaFria x1 - Total: $100.00
 Total con descuento: $100.00
 ==================================================
+ID Factura: 9
+Fecha: 2025-03-03 16:59:02
+Descuento: 0.0%
+Producto: Cocos x2 - Total: $600.00
+Total con descuento: $600.00
+==================================================
+ID Factura: 10
+Fecha: 2025-03-03 17:10:46
+Descuento: 0.0%
+Producto: ccc x4 - Total: $6123.00
+Total con descuento: $6123.00
+==================================================
+ID Factura: 11
+Fecha: 2025-03-03 17:15:56
+Descuento: 0.0%
+Producto: ArbejaFria x4 - Total: $400.00
+Total con descuento: $400.00
+==================================================
+ID Factura: 12
+Fecha: 2025-03-03 17:16:39
+Descuento: 0.0%
+Producto: ccc x1 - Total: $1530.75
+Total con descuento: $1530.75
+==================================================
+ID Factura: 13
+Fecha: 2025-03-03 17:23:06
+Descuento: 0.0%
+Producto: ChileBlanco x2 - Total: $600.00
+Total con descuento: $600.00
+==================================================
+ID Factura: 14
+Fecha: 2025-03-03 17:41:26
+Descuento: 0.0%
+Producto: Cebolla x2 - Total: $3.00
+Total con descuento: $3.00
+==================================================
+ID Factura: 15
+Fecha: 2025-03-03 17:41:45
+Descuento: 0.0%
+Producto: ArbejaFria x5 - Total: $500.00
+Total con descuento: $500.00
+==================================================
